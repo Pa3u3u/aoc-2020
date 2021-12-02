@@ -38,28 +38,38 @@ let uncurry f (a, b) = f a b
 
 
 type position = {
-    h : int;
-    d : int;
+    hpos : int;
+    depth : int;
+    aim : int;
 }
 
 
-let dive offset = function
-    | { h = vh; d = vd } -> { h = vh; d = vd + offset }
+let dive offset position =
+    { position with depth = position.depth + offset }
 
 
-let move offset = function
-    | { h = vh; d = vd } -> { h = vh + offset; d = vd }
+let move offset position =
+    { position with hpos = position.hpos + offset }
+
+
+let rotate offset position =
+    { position with aim = position.aim + offset }
 
 
 let interpret = function
-    | ("forward", v) -> move v
-    | ("up", v) -> dive (-v)
-    | ("down", v) -> dive v
+    | ("forward", v) -> fun p -> move v p |> dive (p.aim * v)
+    | ("up", v) -> rotate (-v)
+    | ("down", v) -> rotate v
     | _ -> Fun.id
 
 
 let print_position r =
-    printf "position: [h = %d, d = %d]\nanswer: %d\n" r.h r.d (r.h * r.d)
+    printf "position: [h = %d, d = %d]\nanswer: %d\n" r.hpos r.depth
+            (r.hpos * r.depth)
+
+
+let initial_position =
+    { hpos = 0; depth = 0; aim = 0 }
 
 
 let () =
@@ -69,6 +79,5 @@ let () =
     end else
         file_as_seq Sys.argv.(1)
             |> process_input
-            |> Seq.fold_left (Fun.flip interpret) { h = 0; d = 0 }
+            |> Seq.fold_left (Fun.flip interpret) initial_position
             |> print_position
-
