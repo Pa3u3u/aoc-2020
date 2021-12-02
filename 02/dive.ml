@@ -34,9 +34,6 @@ let process_input seq =
         |> Seq.filter_map extract_pairs
 
 
-let uncurry f (a, b) = f a b
-
-
 type position = {
     hpos : int;
     depth : int;
