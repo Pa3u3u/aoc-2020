@@ -44,7 +44,7 @@ let interpret = function
 
 
 let print_position r =
-    printf "position: [h = %d, d = %d]\nanswer: %d\n" r.hpos r.depth
+    printf "# position: [h = %d, d = %d]\n%d\n" r.hpos r.depth
             (r.hpos * r.depth)
 
 
