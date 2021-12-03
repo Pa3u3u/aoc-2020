@@ -27,3 +27,11 @@ module Operators = struct
     let (^>) f g x = g (f x)
 
 end
+
+
+let both f (x, y) =
+    (f x, f y)
+
+
+let fork f g a =
+    (f a, g a)
