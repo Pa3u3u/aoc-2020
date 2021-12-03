@@ -27,7 +27,6 @@ module Operators = struct
 
     let (|<) g f x = g (f x)
     let (>>) f g x = g (f x)
-    let (^>) f g x = g (f x)
 
 end
 
