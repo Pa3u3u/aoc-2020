@@ -9,17 +9,17 @@ module String = struct
         List.init (String.length str) (String.get str)
 end
 
-exception Invalid_value of string
+exception Invalid_input of string
 
 let bit_value = function
     | '0' -> 0
     | '1' -> 1
-    | c -> raise (Invalid_value (sprintf "Invalid bit character %c" c))
+    | c -> raise (Invalid_input (sprintf "Invalid bit character %c" c))
 
 
 let rec get_stats stats bits =
     let bit_weight v =
-        1 - 2 * v in
+        2 * v - 1 in
 
     match (stats, bits) with
     | (_, []) -> []
@@ -35,16 +35,35 @@ let reconstruct_number =
     reconstruct 0
 
 
+let analyze pos values =
+    List.map ((Fun.flip List.nth pos) >> Fun.flip List.cons []) values
+        |> List.fold_left get_stats []
+        |> List.hd
+
+
+let prune_values crit pos values =
+    let keep = if crit (analyze pos values) then 1 else 0 in
+        List.filter (fun l -> (List.nth l pos) == keep) values
+
+
+let select criterion values =
+    let rec select_n crit pos x =
+        match x with
+        | [] -> raise (Invalid_input "No viable candidate left")
+        | [v] -> v
+        | xv -> select_n crit (pos + 1) (prune_values crit pos xv) in
+
+    select_n criterion 0 values
+
+
 let () =
     if Array.length Sys.argv - 1 <> 1 then begin
         Printf.eprintf "usage: %s FILE\n" Sys.argv.(0);
         exit 0;
     end;
 
-    Toolbox.File.as_seq Sys.argv.(1)
-        |> Seq.map (String.to_list >> (List.map bit_value) >> List.rev)
-        |> Seq.fold_left get_stats []
-        |> List.map (fun stat -> if stat > 0 then 1 else 0)
-        |> Toolbox.fork Fun.id (List.map ((-) 1))
-        |> Toolbox.both (List.rev >> reconstruct_number)
-        |> fun (a, b) -> printf "# [γ=%d, ε=%d]\n%d\n" a b (a * b)
+    Toolbox.File.as_list Sys.argv.(1)
+        |> List.map (String.to_list >> (List.map bit_value))
+        |> Toolbox.fork (select (Fun.flip (>=) 0)) (select (Fun.flip (<) 0))
+        |> Toolbox.both (reconstruct_number)
+        |> fun (o2, co2) -> printf "# [O₂=%d CO₂=%d]\n%d\n" o2 co2 (o2 * co2)
