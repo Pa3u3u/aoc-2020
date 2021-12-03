@@ -1,25 +1,8 @@
 open Printf
 
 
-let file_as_seq file_name =
-    let unfolder handle =
-        try let line = input_line handle in
-            Some (line, handle)
-        with _ ->
-            close_in_noerr handle;
-            None
-
-    and file = open_in file_name in
-        Seq.unfold unfolder file
-
-
-let read_int str =
-    try Some (int_of_string str)
-    with _ -> None
-
-
 let convert_input = function
-    | a::b::[] -> Some (a, read_int b)
+    | a::b::[] -> Some (a, Toolbox.Num.parse_int b)
     | _ -> None
 
 
@@ -73,8 +56,9 @@ let () =
     if Array.length Sys.argv - 1 <> 1 then begin
         Printf.eprintf "usage: %s FILE\n" Sys.argv.(0);
         exit 0;
-    end else
-        file_as_seq Sys.argv.(1)
-            |> process_input
-            |> Seq.fold_left (Fun.flip interpret) initial_position
-            |> print_position
+    end;
+
+    Toolbox.File.as_seq Sys.argv.(1)
+        |> process_input
+        |> Seq.fold_left (Fun.flip interpret) initial_position
+        |> print_position
