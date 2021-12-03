@@ -9,6 +9,7 @@ module String = struct
         List.init (String.length str) (String.get str)
 end
 
+
 exception Invalid_input of string
 
 let bit_value = function
@@ -24,19 +25,19 @@ let rec get_stats stats bits =
     match (stats, bits) with
     | (_, []) -> []
     | ([], l) -> get_stats [0] l
-    | (s::xs, b::xb) -> (s + bit_weight b) :: get_stats xs xb
+    | (stat::xs, bit::xb) -> (stat + bit_weight bit) :: get_stats xs xb
 
 
 let reconstruct_number =
-    let rec reconstruct a = function
-        | n::xn -> reconstruct ((Int.shift_left a 1) lor n) xn
-        | [] -> a in
+    let rec reconstruct acc = function
+        | bit::xn -> reconstruct ((Int.shift_left acc 1) lor bit) xn
+        | [] -> acc in
 
     reconstruct 0
 
 
 let analyze pos values =
-    List.map ((Fun.flip List.nth pos) >> Fun.flip List.cons []) values
+    List.map (Fun.flip List.nth pos >> Fun.flip List.cons []) values
         |> List.fold_left get_stats []
         |> List.hd
 
@@ -47,8 +48,7 @@ let prune_values crit pos values =
 
 
 let select criterion values =
-    let rec select_n crit pos x =
-        match x with
+    let rec select_n crit pos = function
         | [] -> raise (Invalid_input "No viable candidate left")
         | [v] -> v
         | xv -> select_n crit (pos + 1) (prune_values crit pos xv) in
@@ -65,5 +65,5 @@ let () =
     Toolbox.File.as_list Sys.argv.(1)
         |> List.map (String.to_list >> (List.map bit_value))
         |> Toolbox.fork (select (Fun.flip (>=) 0)) (select (Fun.flip (<) 0))
-        |> Toolbox.both (reconstruct_number)
+        |> Toolbox.both reconstruct_number
         |> fun (o2, co2) -> printf "# [O₂=%d CO₂=%d]\n%d\n" o2 co2 (o2 * co2)
