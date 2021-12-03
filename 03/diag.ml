@@ -47,4 +47,4 @@ let () =
         |> List.map (fun stat -> if stat > 0 then 1 else 0)
         |> Toolbox.fork Fun.id (List.map ((-) 1))
         |> Toolbox.both (List.rev >> reconstruct_number)
-        |> fun (a, b) -> printf "[γ=%d, ε=%d]\n%d\n" a b (a * b)
+        |> fun (a, b) -> printf "# [γ=%d, ε=%d]\n%d\n" a b (a * b)
