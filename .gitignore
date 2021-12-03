@@ -8,4 +8,3 @@ input
 
 # Ignore Dune auxiliary files
 _build
-dune-project
