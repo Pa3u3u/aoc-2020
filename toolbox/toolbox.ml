@@ -10,6 +10,9 @@ module File = struct
         and file = open_in file_name in
             Seq.unfold unfolder file
 
+    let as_list file_name =
+        as_seq file_name |> List.of_seq
+
 end
 
 module Num = struct
