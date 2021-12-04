@@ -149,14 +149,21 @@ let convert_boards =
         >> List.map Board.from_raw
 
 
+let play_one (boards : Board.board list) (n : int) =
+    List.iter (Fun.flip Board.mark n) boards;
+    boards
 
-let rec play_game (draws : int list) (boards : Board.board list) = match draws with
-    | [] -> raise (Invalid_input "No winning board found")
-    | n::xn -> begin List.iter (Fun.flip Board.mark n) boards;
-        match List.find_opt Board.is_winning boards with
-            | Some board -> (n, board)
-            | None -> play_game xn boards
-    end
+
+let rec last_board (draws : int list) (boards : Board.board list) =
+    let check_boards draw rest boards =
+        match play_one boards draw with
+        | [] -> raise (Invalid_input "No boards left")
+        | [board] when Board.is_winning board -> (draw, board)
+        | boards -> last_board rest (List.filter (Board.is_winning >> not) boards) in
+
+    match draws with
+        | [] -> raise (Invalid_input "Draws drained before board fount")
+        | draw::xd -> check_boards draw xd boards
 
 
 let () =
@@ -168,7 +175,7 @@ let () =
     Toolbox.File.as_seq Sys.argv.(1)
         |> parse_input
         |> Toolbox.second convert_boards
-        |> Toolbox.uncurry play_game
+        |> Toolbox.uncurry last_board
         |> fun (n, board) -> begin
             let board_value = Board.sum_marked board in
                 printf "# drawn number = %d\n" n;
