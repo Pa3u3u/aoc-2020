@@ -162,7 +162,7 @@ let rec last_board (draws : int list) (boards : Board.board list) =
         | boards -> last_board rest (List.filter (Board.is_winning >> not) boards) in
 
     match draws with
-        | [] -> raise (Invalid_input "Draws drained before board fount")
+        | [] -> raise (Invalid_input "Draws drained before board found")
         | draw::xd -> check_boards draw xd boards
 
 
