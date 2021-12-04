@@ -37,3 +37,11 @@ let both f (x, y) =
 
 let fork f g a =
     (f a, g a)
+
+
+let curry f a b = f (a, b)
+let uncurry f (a, b) = f a b
+
+
+let first f (a, b) = (f a, b)
+let second f (a, b) = (a, f b)
