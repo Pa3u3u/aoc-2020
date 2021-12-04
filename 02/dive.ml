@@ -55,7 +55,7 @@ let initial_position =
 let () =
     if Array.length Sys.argv - 1 <> 1 then begin
         Printf.eprintf "usage: %s FILE\n" Sys.argv.(0);
-        exit 0;
+        exit 1;
     end;
 
     Toolbox.File.as_seq Sys.argv.(1)
