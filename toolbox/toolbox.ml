@@ -51,6 +51,26 @@ module List = struct
 end
 
 
+module Seq = struct
+    include Seq
+
+
+    let repeat v =
+        Seq.unfold (fun x -> Some (x, x)) v
+
+
+    let zip_with (f: 'a -> 'b -> 'c) (left: 'a Seq.t) (right: 'b Seq.t): 'c Seq.t =
+        let zipper (l, r) = match (l (), r ()) with
+            | (Cons (va, xa), Cons (vb, xb)) -> Some (f va vb, (xa, xb))
+            | _ -> None in
+        unfold zipper (left, right)
+
+
+    let zip (left: 'a Seq.t) (right: 'b Seq.t): ('a * 'b) Seq.t =
+        zip_with pair left right
+end
+
+
 module Range = struct
     type 'a t = 'a * 'a * ('a -> bool)
 
