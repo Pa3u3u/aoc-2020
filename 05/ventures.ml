@@ -34,24 +34,22 @@ module Segment = struct
         sprintf "%s -> %s" (Point.to_string a) (Point.to_string b)
 
 
-    let is_x (s: t) = (fst s).y == (snd s).y
-    let is_y (s: t) = (fst s).x == (snd s).x
+    let get_range lens (s: t) =
+        let (a, b) = (Toolbox.fork fst snd >> Toolbox.both lens) s in
+        if a == b then
+            Toolbox.Seq.repeat a
+        else
+            Toolbox.Range.make_inc a b |> Toolbox.Range.as_seq
 
-
-    let range_x (s: t) =
-        Toolbox.Range.make_inc (fst s).x (snd s).x |> Toolbox.Range.as_list
-    let range_y (s: t) =
-        Toolbox.Range.make_inc (fst s).y (snd s).y |> Toolbox.Range.as_list
+    let range_x = get_range (fun (p: point) -> p.x)
+    let range_y = get_range (fun (p: point) -> p.y)
 
 
     let get_points (s: t): Point.t list =
-        let raw_values segment = match segment with
-            | ((a: point), _) when is_x segment ->
-                    segment |> range_x |> List.map (fun x -> (x, a.y))
-            | ((a: point), _) when is_y segment ->
-                    segment |> range_y |> List.map (fun y -> (a.x, y))
-            | _ -> segment |> Toolbox.fork range_x range_y
-                    |> Toolbox.uncurry List.combine in
+        let raw_values =
+            Toolbox.fork range_x range_y
+                >> Toolbox.uncurry Toolbox.Seq.zip
+                >> List.of_seq in
         raw_values s
             |> List.map (Toolbox.uncurry Point.make)
 end
