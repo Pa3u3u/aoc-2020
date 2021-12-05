@@ -1,0 +1,3 @@
+(executable
+ (name ventures)
+ (libraries str toolbox))
