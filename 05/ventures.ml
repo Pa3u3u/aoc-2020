@@ -45,12 +45,13 @@ module Segment = struct
 
 
     let get_points (s: t): Point.t list =
-        let raw_values = function
-            | ((a: point), _) when is_x s ->
-                    range_x s |> List.map (fun x -> (x, a.y))
-            | ((a: point), _) when is_y s ->
-                    range_y s |> List.map (fun y -> (a.x, y))
-            | _ -> raise (Invalid_input "Invalid segment") in
+        let raw_values segment = match segment with
+            | ((a: point), _) when is_x segment ->
+                    segment |> range_x |> List.map (fun x -> (x, a.y))
+            | ((a: point), _) when is_y segment ->
+                    segment |> range_y |> List.map (fun y -> (a.x, y))
+            | _ -> segment |> Toolbox.fork range_x range_y
+                    |> Toolbox.uncurry List.combine in
         raw_values s
             |> List.map (Toolbox.uncurry Point.make)
 end
@@ -137,7 +138,6 @@ let () =
 
     Toolbox.File.as_seq Sys.argv.(1)
         |> Seq.filter_map parse_segment
-        |> Seq.filter Segment.is_basic
         |> List.of_seq
         |> create_diagram
         |> count_dangers
