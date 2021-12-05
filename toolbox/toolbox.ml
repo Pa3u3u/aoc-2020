@@ -24,7 +24,17 @@ end
 module Operators = struct
     let (|<) g f x = g (f x)
     let (>>) f g x = g (f x)
+end
 
+
+module List = struct
+    include List
+
+
+    let rec map_pairs (f : 'a -> 'a -> 'b) = function
+        | [] -> []
+        | a::b::rest -> (f a b) :: map_pairs f rest
+        | _ -> raise (Failure "The list does not have even length")
 end
 
 
