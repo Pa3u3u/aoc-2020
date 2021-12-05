@@ -1,3 +1,16 @@
+let pair a b = (a, b)
+let both f (x, y) = (f x, f y)
+let fork f g a = (f a, g a)
+
+let curry f a b = f (a, b)
+let uncurry f (a, b) = f a b
+
+let first f (a, b) = (f a, b)
+let second f (a, b) = (a, f b)
+
+let peek f v = f v; v
+
+
 module File = struct
     let as_seq file_name =
         let unfolder handle =
@@ -76,15 +89,3 @@ module Range = struct
     let as_list (r: 'a t): 'a list =
         as_seq r |> List.of_seq
 end
-
-
-let both f (x, y) = (f x, f y)
-let fork f g a = (f a, g a)
-
-let curry f a b = f (a, b)
-let uncurry f (a, b) = f a b
-
-let first f (a, b) = (f a, b)
-let second f (a, b) = (a, f b)
-
-let peek f v = f v; v
