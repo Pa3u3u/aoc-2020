@@ -1,5 +1,4 @@
 module File = struct
-
     let as_seq file_name =
         let unfolder handle =
             try let line = input_line handle in
@@ -12,19 +11,17 @@ module File = struct
 
     let as_list file_name =
         as_seq file_name |> List.of_seq
-
 end
 
-module Num = struct
 
+module Num = struct
     let parse_int str =
         try Some (int_of_string str)
         with _ -> None
-
 end
 
-module Operators = struct
 
+module Operators = struct
     let (|<) g f x = g (f x)
     let (>>) f g x = g (f x)
 
@@ -41,7 +38,6 @@ let fork f g a =
 
 let curry f a b = f (a, b)
 let uncurry f (a, b) = f a b
-
 
 let first f (a, b) = (f a, b)
 let second f (a, b) = (a, f b)
