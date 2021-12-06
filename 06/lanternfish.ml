@@ -74,7 +74,7 @@ let () =
         exit 1;
     end;
 
-    let days = if argc = 1 then 80 else get_days Sys.argv.(2) in
+    let days = if argc = 1 then 256 else get_days Sys.argv.(2) in
 
     Toolbox.File.as_seq Sys.argv.(1)
         |> process_input
