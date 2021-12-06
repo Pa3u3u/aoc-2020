@@ -55,7 +55,7 @@ module Seq = struct
     include Seq
 
 
-    let repeat v =
+    let repeat (v: 'a): 'a Seq.t  =
         Seq.unfold (fun x -> Some (x, x)) v
 
 
