@@ -9,37 +9,26 @@ let process_input =
 
 
 module Population = struct
-    type generation = (int * int)
+    type generation = int
     type t = generation list
 
 
-    let compare (a: generation) (b: generation): int =
-         Int.compare (fst a) (fst b)
+    let rec add (pop: t) (gen: int) (v: int): t = match pop with
+        | n::rest when gen == 0 -> (n + v)::rest
+        | [] when gen == 0 -> [v]
+        | n::rest -> n::(add rest (gen - 1) v)
+        | [] -> 0::(add [] (gen - 1) v)
 
 
-    let normalize =
-        let rec join = function
-            | (a, na)::(b, nb)::rest when a == b -> join ((a, na + nb) :: rest)
-            | r1::rest -> r1 :: join rest
-            | [] -> [] in
-        List.sort compare >> join
+    let from_ages = List.fold_left (fun p g -> add p g 1)  []
 
 
-    let from_ages =
-        List.map (fun n -> (n, 1))
-            >> normalize
+    let grow = function
+        | n::rest -> add rest 6 n |> fun pop -> add pop 8 n
+        | [] -> []
 
 
-    let grow  =
-        let rec grow_gens = function
-            | (0, count)::rest -> (6, count)::(8, count) :: grow_gens rest
-            | (n, count)::rest -> (n - 1, count) :: grow_gens rest
-            | [] -> [] in
-        grow_gens >> normalize
-
-
-    let count =
-        List.map snd >> List.fold_left (+) 0
+    let count (p: t) = List.fold_left (+) 0 p
 
 
     let print title l =
@@ -47,7 +36,7 @@ module Population = struct
             sprintf "[%d × (%d)]" count timer in
 
         printf "# %s:\n#  " title;
-        List.iter (fun p -> printf "  %s" (gen_str p)) l;
+        List.iteri (fun i p -> printf "  %s" (gen_str (i, p))) l;
         printf "\n"
 end
 
