@@ -44,7 +44,7 @@ module Population = struct
 
     let print title l =
         let gen_str (timer, count) =
-            sprintf "[%3d × (%d)]" count timer in
+            sprintf "[%d × (%d)]" count timer in
 
         printf "# %s:\n#  " title;
         List.iter (fun p -> printf "  %s" (gen_str p)) l;
