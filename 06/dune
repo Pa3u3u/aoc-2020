@@ -1,0 +1,3 @@
+(executable
+ (name lanternfish)
+ (libraries toolbox))
