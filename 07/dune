@@ -1,0 +1,3 @@
+(executable
+ (name crabs)
+ (libraries toolbox))
