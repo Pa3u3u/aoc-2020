@@ -48,6 +48,13 @@ module List = struct
         | [] -> []
         | a::b::rest -> (f a b) :: map_pairs f rest
         | _ -> raise (Failure "The list does not have even length")
+
+
+    let sum: int list -> int  = List.fold_left (+) 0
+
+
+    let flist (functions: ('a -> 'b) list) (value: 'a): 'b list =
+        List.map (fun f -> f value) functions
 end
 
 
