@@ -1,5 +1,5 @@
 BUILD_PATH = _build/default
-PROJECTS = $(shell find . -maxdepth 2 -type f -regextype egrep -regex '\./[0-9]{2}/.*\.ml' -printf "%P\n")
+PROJECTS = $(shell find . -maxdepth 2 -type f -regextype egrep -regex '\./[0-9]{2}/.*\.ml' -printf "%P\n" | sort)
 EXECUTABLES = $(PROJECTS:%.ml=%.exe)
 TARGETS = $(addprefix $(BUILD_PATH)/, $(EXECUTABLES))
 
