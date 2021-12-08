@@ -44,6 +44,13 @@ module List = struct
     include List
 
 
+    let rec equal (cmp: 'a -> 'a -> bool) (l: 'a list) (r: 'a list): bool =
+        match (l, r) with
+            | ([], []) -> true
+            | (vl::xl, vr::xr) -> cmp vl vr && equal cmp xl xr
+            | _, _ -> false
+
+
     let rec map_pairs (f : 'a -> 'a -> 'b) = function
         | [] -> []
         | a::b::rest -> (f a b) :: map_pairs f rest
