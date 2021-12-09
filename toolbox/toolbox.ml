@@ -10,6 +10,27 @@ let second f (a, b) = (a, f b)
 
 let peek f v = f v; v
 
+let const a _ = a
+let dup a = (a, a)
+
+let ifv (c: bool) (if_true: 'a) (if_false: 'a): 'a =
+    if c then if_true else if_false
+
+let guard ex (f: 'a -> 'b option) (v: 'a): 'b = match f v with
+    | Some x -> x
+    | None -> (ex v)
+
+
+module Array = struct
+    include Array
+
+
+    let foldi_left (f: int -> 'a -> 'b -> 'a) (acc: 'a) (arr: 'b array): 'a =
+        List.init (Array.length arr) Fun.id
+            |> List.fold_left (fun (ac, ar) i -> (f i ac arr.(i), ar)) (acc, arr)
+            |> fst
+end
+
 
 module File = struct
     let as_seq file_name =
@@ -28,15 +49,15 @@ end
 
 
 module Num = struct
+    exception Parse_error of string
+
     let parse_int str =
         try Some (int_of_string str)
         with _ -> None
-end
 
 
-module Operators = struct
-    let (|<) g f x = g (f x)
-    let (>>) f g x = g (f x)
+    let parse_int_exn =
+        guard (fun s -> raise (Parse_error (Printf.sprintf "%s: Not a valid number" s))) parse_int
 end
 
 
@@ -65,23 +86,11 @@ module List = struct
 end
 
 
-module Seq = struct
-    include Seq
+module Operators = struct
+    let (|<) g f x = g (f x)
+    let (>>) f g x = g (f x)
 
-
-    let repeat (v: 'a): 'a Seq.t  =
-        Seq.unfold (fun x -> Some (x, x)) v
-
-
-    let zip_with (f: 'a -> 'b -> 'c) (left: 'a Seq.t) (right: 'b Seq.t): 'c Seq.t =
-        let zipper (l, r) = match (l (), r ()) with
-            | (Cons (va, xa), Cons (vb, xb)) -> Some (f va vb, (xa, xb))
-            | _ -> None in
-        unfold zipper (left, right)
-
-
-    let zip (left: 'a Seq.t) (right: 'b Seq.t): ('a * 'b) Seq.t =
-        zip_with pair left right
+    let (&--) a z = List.init (z - a) ((+) a)
 end
 
 
@@ -122,4 +131,33 @@ module Range = struct
 
     let as_list (r: 'a t): 'a list =
         as_seq r |> List.of_seq
+end
+
+
+module Seq = struct
+    include Seq
+
+
+    let repeat (v: 'a): 'a Seq.t  =
+        Seq.unfold (fun x -> Some (x, x)) v
+
+
+    let zip_with (f: 'a -> 'b -> 'c) (left: 'a Seq.t) (right: 'b Seq.t): 'c Seq.t =
+        let zipper (l, r) = match (l (), r ()) with
+            | (Cons (va, xa), Cons (vb, xb)) -> Some (f va vb, (xa, xb))
+            | _ -> None in
+        unfold zipper (left, right)
+
+
+    let zip (left: 'a Seq.t) (right: 'b Seq.t): ('a * 'b) Seq.t =
+        zip_with pair left right
+end
+
+
+module String = struct
+    include String
+
+
+    let to_chars: String.t -> char list =
+        Operators.(>>) String.to_seq List.of_seq
 end
