@@ -35,7 +35,7 @@ module HeightMap = struct
     let safe_get (m: t) (x: int) (y: int) =
         let h = height m and w = width m in
 
-    if x < 0 || x >= w || y < 0 || y >= h then 10 else m.(y).(x)
+        if x < 0 || x >= w || y < 0 || y >= h then 10 else m.(y).(x)
 end
 
 
@@ -80,6 +80,37 @@ let get_vales (m: HeightMap.t): int list =
 let get_risk_factor = List.map ((+) 1) >> List.sum
 
 
+let basins (m: HeightMap.t): int list =
+    let basin_map = Array.map (Array.map (fun v -> (v, false))) in
+
+    let w = HeightMap.width m and h = HeightMap.height m in
+
+    let boundary m x y =
+        let p = m.(y).(x) in
+            fst p == 9 || snd p in
+
+    let rec flood_fill x y pm acc =
+        match (x, y) with
+        | x, _ when x < 0 || x >= w -> acc
+        | _, y when y < 0 || y >= h -> acc
+        | x, y when boundary pm x y -> acc
+        | x, y ->
+            pm.(y).(x) <- (fst pm.(y).(x), true);
+            acc |> flood_fill (x + 1) y pm
+                |> flood_fill (x - 1) y pm
+                |> flood_fill x (y - 1) pm
+                |> flood_fill x (y + 1) pm |> (+) 1 in
+
+    let seek_basins pm =
+        let search_row y acc row =
+            Array.foldi_left (fun x acc _ -> (flood_fill x y pm 0)::acc) acc row in
+        Array.foldi_left search_row [] pm in
+
+    basin_map m |> seek_basins |> List.filter ((<) 0)
+        |> List.sort (Fun.flip Int.compare)
+        |> List.take 3
+
+
 let () =
     let argc = Array.length Sys.argv - 1 in
 
@@ -91,7 +122,8 @@ let () =
     File.as_seq Sys.argv.(1)
         |> process_input
         |> get_height_map
-        |> peek HeightMap.print
-        |> get_vales
-        |> get_risk_factor
+        |> basins
+        |> peek (List.iter (printf "# %d\n"))
+        |> List.fold_left ( * ) 1
         |> printf "%d\n"
+
