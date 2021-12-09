@@ -83,6 +83,12 @@ module List = struct
 
     let flist (functions: ('a -> 'b) list) (value: 'a): 'b list =
         List.map (fun f -> f value) functions
+
+
+    let rec take (n: int): 'a list -> 'a list = function
+        | [] -> []
+        | _ when n == 0 -> []
+        | x::xs -> x :: take (n - 1) xs
 end
 
 
