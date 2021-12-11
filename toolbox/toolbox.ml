@@ -23,6 +23,14 @@ let guard ex (f: 'a -> 'b option) (v: 'a): 'b = match f v with
     | None -> (ex v)
 
 
+module Operators = struct
+    let (|<) g f x = g (f x)
+    let (>>) f g x = g (f x)
+
+    let (&--) a z = List.init (z - a) ((+) a)
+end
+
+
 module Array = struct
     include Array
 
@@ -47,6 +55,89 @@ module File = struct
 
     let as_list file_name =
         as_seq file_name |> List.of_seq
+end
+
+
+module type MatrixType = sig
+    type t
+    val init: t
+end
+
+
+module Matrix = struct
+    let rec contains_same_values = function
+        | [] -> true
+        | [_] -> true
+        | x::y::rest -> x == y && contains_same_values (y::rest)
+
+
+    let verify l =
+        if not (contains_same_values l) then
+            raise (Failure "Map does not contain rows of same width")
+
+
+    module Make (MT: MatrixType) = struct
+        open Operators
+
+        type v = MT.t
+        type 'a t = 'a array array
+        type m = v t
+        type pos = int * int
+
+
+        let create width height =
+            Array.make_matrix height width MT.init
+
+
+        let load (m: m): v list list -> m =
+            let fill_row y =
+                List.iteri (fun x v -> m.(y).(x) <- v) in
+
+            List.iteri fill_row >> const m
+
+
+        let from_lists =
+            peek (List.map List.length >> verify)
+                >> dup >> first (fork (List.hd >> List.length) (List.length))
+                >> first (uncurry create)
+                >> uncurry load
+
+
+        let height: m -> int = Array.length
+        let width: m -> int = Fun.flip Array.get 0 >> Array.length
+
+
+        let mapi (f: pos -> 'a -> 'b): 'a t -> 'b t =
+            let mapi_row y =
+                Array.mapi (fun x -> f (x, y)) in
+
+            Array.mapi mapi_row
+
+
+        let map (f: 'a -> 'b): 'a t -> 'b t =
+            mapi (shift f)
+
+
+        let foldi_left (f: pos -> 'a -> 'b -> 'a): 'a -> 'b t -> 'a =
+            let foldi_row y acc =
+                Array.foldi_left (fun x -> f (x, y)) acc in
+            Array.foldi_left foldi_row
+
+
+        let fold_left (f: 'a -> 'b -> 'a): 'a -> 'b t -> 'a =
+            foldi_left (shift f)
+
+
+        let iteri (f: pos -> 'a -> unit): 'a t -> unit =
+            let iteri_row y =
+                Array.iteri (fun x -> f (x, y)) in
+
+            Array.iteri iteri_row
+
+
+        let valid_point (m: m) ((x, y): pos): bool =
+            x >= 0 && y >= 0 && y < height m && x < width m
+    end
 end
 
 
@@ -91,14 +182,14 @@ module List = struct
         | [] -> []
         | _ when n == 0 -> []
         | x::xs -> x :: take (n - 1) xs
-end
 
 
-module Operators = struct
-    let (|<) g f x = g (f x)
-    let (>>) f g x = g (f x)
+    let rec product (la: 'a list) (lb: 'b list): ('a * 'b) list =
+        let prod v = List.map (fun b -> (v, b)) in
 
-    let (&--) a z = List.init (z - a) ((+) a)
+        match la with
+        | [] -> []
+        | a::rest -> List.append (prod a lb) (product rest lb)
 end
 
 
