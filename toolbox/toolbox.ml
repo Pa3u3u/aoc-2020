@@ -1,6 +1,7 @@
 let pair a b = (a, b)
 let both f (x, y) = (f x, f y)
 let fork f g a = (f a, g a)
+let bimap f g (x, y) = (f x, g y)
 
 let curry f a b = f (a, b)
 let uncurry f (a, b) = f a b
@@ -107,11 +108,12 @@ module Matrix = struct
         let width: m -> int = Fun.flip Array.get 0 >> Array.length
 
 
-        let mapi (f: pos -> 'a -> 'b): 'a t -> 'b t =
-            let mapi_row y =
-                Array.mapi (fun x -> f (x, y)) in
+        let _f2di fin fout f =
+            fout (fun y -> fin (fun x -> f (x, y)))
 
-            Array.mapi mapi_row
+
+        let mapi (f: pos -> 'a -> 'b): 'a t -> 'b t =
+            _f2di Array.mapi Array.mapi f
 
 
         let map (f: 'a -> 'b): 'a t -> 'b t =
@@ -119,9 +121,7 @@ module Matrix = struct
 
 
         let foldi_left (f: pos -> 'a -> 'b -> 'a): 'a -> 'b t -> 'a =
-            let foldi_row y acc =
-                Array.foldi_left (fun x -> f (x, y)) acc in
-            Array.foldi_left foldi_row
+            _f2di Array.foldi_left Array.foldi_left f
 
 
         let fold_left (f: 'a -> 'b -> 'a): 'a -> 'b t -> 'a =
@@ -129,10 +129,15 @@ module Matrix = struct
 
 
         let iteri (f: pos -> 'a -> unit): 'a t -> unit =
-            let iteri_row y =
-                Array.iteri (fun x -> f (x, y)) in
+            _f2di Array.iteri Array.iteri f
 
-            Array.iteri iteri_row
+
+        let remap (f: 'a -> 'a) (m: 'a t): 'a t =
+            iteri (fun (x, y) v -> m.(y).(x) <- f v) m; m
+
+
+        let for_all (f: 'a -> bool): 'a t -> bool =
+            fold_left (fun a v -> a && (f v)) true
 
 
         let valid_point (m: m) ((x, y): pos): bool =
@@ -221,6 +226,11 @@ module Range = struct
         make_step a (z + step) step
 
 
+    let infinite (a: 'a) (step: 'a): 'a t =
+        assert (step != 0);
+        (a, step, fun _ -> true)
+
+
     let as_seq ((a, step, f): 'a t): 'a Seq.t =
         let unfolder = function
             | n when f n -> Some (n, n + step)
@@ -250,6 +260,12 @@ module Seq = struct
 
     let zip (left: 'a Seq.t) (right: 'b Seq.t): ('a * 'b) Seq.t =
         zip_with pair left right
+
+
+    let rec find_opt (p: 'a -> bool) (s: 'a Seq.t): 'a option = match s() with
+        | (Cons (a, _)) when p a -> Some a
+        | (Cons (_, t)) -> find_opt p t
+        | Nil -> None
 end
 
 
