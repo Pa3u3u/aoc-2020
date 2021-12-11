@@ -33,7 +33,7 @@ module SimBoard = struct
 end
 
 
-let run_simulation (steps: int): LightMap.m -> int * LightMap.m =
+let run_simulation: LightMap.m -> int * LightMap.m =
     let neighbours m (x, y) =
         let offsets = Range.(make_inc (-1) (1) |> as_list) in
 
@@ -42,7 +42,7 @@ let run_simulation (steps: int): LightMap.m -> int * LightMap.m =
             |> List.filter (SimBoard.valid_point m)
             |> List.filter (fun (x1, y1) -> x != x1 || y != y1) in
 
-    let reset = SimBoard.map (second (const false)) in
+    let reset = SimBoard.remap (second (const false)) in
 
     let rec flash m (x, y) =
         let (v, flashed) = m.(y).(x) in
@@ -56,22 +56,17 @@ let run_simulation (steps: int): LightMap.m -> int * LightMap.m =
             end
         end in
 
-    let count_flashes =
-        let sum_flashed acc = function
-            | (_, true) -> acc + 1
-            | (_, false) -> acc in
-        SimBoard.fold_left sum_flashed 0 in
-
-    let sim_step (acc, m) step_num =
+    let sim_step m step_num =
         printf "# --- Step %d ---\n" step_num;
         reset m |> (fun m -> SimBoard.iteri (fun p _ -> flash m p) m; m)
-            |> fork count_flashes Fun.id |> first ((+) acc)
-            |> peek (snd >> SimBoard.print) in
+            |> peek SimBoard.print
+            |> SimBoard.for_all snd in
 
-    let range = List.init steps Fun.id in
+    (* Steps are counted from 1 *)
+    let range = Range.(infinite 1 1 |> as_seq) in
 
-    SimBoard.from_matrix >> (fun m -> List.fold_left sim_step (0, m) range)
-        >> second (SimBoard.to_matrix)
+    SimBoard.from_matrix >> (fun m -> (Seq.find_opt (sim_step m) range, m))
+        >> bimap Option.get SimBoard.to_matrix
 
 
 let process_input =
@@ -90,14 +85,12 @@ let get_steps str =
 let () =
     let argc = Array.length Sys.argv - 1 in
 
-    if argc < 1 || argc > 2 then begin
-        Printf.eprintf "usage: %s FILE [STEPS]\n" Sys.argv.(0);
+    if argc <> 1 then begin
+        Printf.eprintf "usage: %s FILE\n" Sys.argv.(0);
         exit 1;
     end;
 
-    let steps = if argc = 1 then 100 else get_steps Sys.argv.(2) in
-
     File.as_seq Sys.argv.(1)
         |> process_input
-        |> run_simulation steps
+        |> run_simulation
         |> fst |> printf "%d\n"
