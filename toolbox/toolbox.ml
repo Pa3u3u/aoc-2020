@@ -16,6 +16,8 @@ let dup a = (a, a)
 let ifv (c: bool) (if_true: 'a) (if_false: 'a): 'a =
     if c then if_true else if_false
 
+let shift f _ = f
+
 let guard ex (f: 'a -> 'b option) (v: 'a): 'b = match f v with
     | Some x -> x
     | None -> (ex v)
