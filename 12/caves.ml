@@ -80,9 +80,9 @@ let create_graph: Graph.edge Seq.t -> Graph.graph =
     Seq.fold_left (fun g e -> g#add e; g) (new Graph.undir_graph)
 
 
-module NodeType = struct
+module NodeMapType = struct
     type t = Graph.node
-    let compare (n1: Graph.node) (n2: Graph.node) = match (n1, n2) with
+    let compare (n1: t) (n2: t) = match (n1, n2) with
         | (Start, _) -> -1
         | (_, Start) ->  1
         | (_, End) -> 1
@@ -90,22 +90,38 @@ module NodeType = struct
         | (Node (_, a), Node (_, b)) -> String.compare a b
 end
 
-module NodeSet = Set.Make(NodeType)
+
+module NodeMap = struct
+    include Map.Make(NodeMapType)
+
+    let add_inc n =
+        let updater = function
+            | None -> Some 1
+            | Some v -> Some (v + 1) in
+        update n updater
+
+    let has_value value =
+        exists (fun _ v -> value = v)
+end
+
+
+type nodemap = int NodeMap.t
+
 
 let find_paths: Graph.graph -> Graph.path list =
-    let rec traverse_fold (path: Graph.path) (s: NodeSet.t) (g: Graph.graph)
+    let rec traverse_fold (path: Graph.path) (s: nodemap) (g: Graph.graph)
             (paths: Graph.path list) (node: Graph.node): Graph.path list =
         List.append paths (traverse node (node::path) s g)
 
-    and traverse (n: Graph.node) (path: Graph.path) (s: NodeSet.t) (g: Graph.graph): Graph.path list =
+    and traverse (n: Graph.node) (path: Graph.path) (s: nodemap) (g: Graph.graph): Graph.path list =
         match n with
         | Start when (List.length path != 1) -> []
         | End -> [List.rev path]
-        | Node (false, _) when NodeSet.mem n s -> []
+        | Node (false, _) when NodeMap.mem n s -> []
         | _ -> g#neighbours n
-                |> Seq.fold_left (traverse_fold path (NodeSet.add n s)  g) [] in
+                |> Seq.fold_left (traverse_fold path (NodeMap.add_inc n s)  g) [] in
 
-    traverse Start [Start] NodeSet.empty
+    traverse Start [Start] NodeMap.empty
 
 
 let () =
