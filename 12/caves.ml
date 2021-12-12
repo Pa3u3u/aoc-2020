@@ -117,9 +117,11 @@ let find_paths: Graph.graph -> Graph.path list =
         match n with
         | Start when (List.length path != 1) -> []
         | End -> [List.rev path]
-        | Node (false, _) when NodeMap.mem n s -> []
+        | Node (false, _) when NodeMap.mem n s && NodeMap.has_value 2 s -> []
+        | Node (false, _) -> g#neighbours n
+                |> Seq.fold_left (traverse_fold path (NodeMap.add_inc n s) g) []
         | _ -> g#neighbours n
-                |> Seq.fold_left (traverse_fold path (NodeMap.add_inc n s)  g) [] in
+                |> Seq.fold_left (traverse_fold path s g) [] in
 
     traverse Start [Start] NodeMap.empty
 
@@ -135,7 +137,6 @@ let () =
     File.as_seq Sys.argv.(1)
         |> parse_input
         |> create_graph
-        |> peek (fun g -> List.iter (both Graph.Node.to_string >> uncurry (printf "# edge %s → %s\n")) g#get_edges)
         |> find_paths
-        |> peek (List.iter (Graph.Path.to_string >> printf "# path %s\n"))
+        |> peek (List.iter (Graph.Path.to_string >> printf "# %s\n"))
         |> List.length |> printf "%d\n"
