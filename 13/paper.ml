@@ -59,8 +59,8 @@ module Origami = struct
 
     let fold (paper: ptl): insl -> ptl =
         let apply_instr (i: ins) ((x, y): pt): pt option = match i with
-            | (X, n) when x < n -> Some (n - x - 1, y)
-            | (X, n) when x > n -> Some (x - n - 1, y)
+            | (X, n) when x < n -> Some (x, y)
+            | (X, n) when x > n -> Some (2 * n - x, y)
             | (X, _) -> None
             | (Y, n) when y < n -> Some (x, y)
             | (Y, n) when y > n -> Some (x, 2 * n - y)
@@ -122,4 +122,4 @@ let () =
     File.as_seq Sys.argv.(1)
         |> parse_input
         |> uncurry Origami.fold
-        |> Origami.Paper.(create >> mirror >> print)
+        |> Origami.Paper.(create >> print)
