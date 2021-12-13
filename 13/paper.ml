@@ -26,6 +26,10 @@ module Origami = struct
 
             List.fold_left assign_pts (PaperMatrix.create w h) input
 
+        let mirror (paper: t): t =
+            let width = PaperMatrix.width paper in
+            PaperMatrix.mapi (fun (x, y) _ -> paper.(y).(width - x - 1)) paper
+
         let print l: unit =
             let print_row row =
                 printf "# ";
@@ -62,8 +66,7 @@ module Origami = struct
             | (Y, n) when y > n -> Some (x, 2 * n - y)
             | (Y, _) -> None in
         let fold_once (paper: ptl) (i: ins): ptl =
-            List.filter_map (apply_instr i) paper |> peek (debug_dump) in
-        debug_dump paper;
+            List.filter_map (apply_instr i) paper in
         List.fold_left fold_once paper >> List.sort_uniq compare_dots
 
     let fold_n (n: int) (paper: ptl): insl -> ptl =
@@ -118,6 +121,5 @@ let () =
 
     File.as_seq Sys.argv.(1)
         |> parse_input
-        |> uncurry (Origami.fold_n 1)
-        |> count_dots
-        |> printf "%d\n"
+        |> uncurry Origami.fold
+        |> Origami.Paper.(create >> mirror >> print)
