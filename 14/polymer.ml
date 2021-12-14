@@ -10,37 +10,44 @@ end
 
 
 module Polymer = struct
-    module RuleMap = Map.Make(struct
+    module CharPairMap = Map.Make(struct
         type t = char * char
         let compare (a1, a2) (b1, b2) = match Char.compare a1 b1 with
             | 0 -> Char.compare a2 b2
             | n -> n
     end)
 
-    type rules_t = char RuleMap.t
+    type rules_t = char CharPairMap.t
+    type poly_t = int CharPairMap.t
 
-    let expand_once (pseq: char Seq.t) (rules: rules_t) =
-        let apply a b rm = match RuleMap.find_opt (a, b) rm with
-            | Some c -> [a; c]
-            | None -> [a] in
 
-        let term = Char.chr 0 in
-        let unfolder ((a, s): (char * char Seq.t)) = match s () with
-            | Cons (b, rest) -> Some (apply a b rules, (b, rest))
-            | Nil when a != term -> Some ([a], (term, Seq.empty))
-            | Nil -> None in
+    let rec pairs = function
+        | a::b::rest -> (a, b) :: pairs (b::rest)
+        | a::[] -> [(a, Char.chr 0)]
+        | [] -> []
 
-        match pseq () with
-            | Cons (v, rest) -> Seq.unfold unfolder (v, rest)
-            | Nil -> Seq.empty
+    let inc_opt (n: int) = function
+        | Some k -> Some (k + n)
+        | None -> Some n
 
-    let fold_expand_once n poly =
-        printf "# Expansion %d\n" (n + 1); Stdlib.(flush stdout);
-        expand_once poly >> Seq.flat_map List.to_seq
+    let fold (rules: rules_t): poly_t -> poly_t =
+        let apply_rules ((x, y), n) rules = match CharPairMap.find_opt (x, y) rules with
+            | Some c -> [((x, c), n); ((c, y), n)]
+            | None -> [((x, y), n)] in
 
-    let expand (n: int) (poly: char Seq.t) (rules: Rule.t list): char Seq.t =
-        let rule_map = List.fold_left (fun m (k, v) -> RuleMap.add k v m) RuleMap.empty rules in
-        List.fold_left (fun p n -> fold_expand_once n p rule_map) poly (0 &-- n)
+        CharPairMap.bindings >> List.map (Fun.flip apply_rules rules)
+            >> List.flatten
+            >> List.fold_left (fun m (p, v) -> CharPairMap.update p (inc_opt v) m) CharPairMap.empty
+
+
+    let fold_stats (n: int) (rules: rules_t): char list -> poly_t =
+        pairs >> List.fold_left (fun m p -> CharPairMap.update p (inc_opt 1) m) CharPairMap.empty
+            >> fun p -> List.fold_left (fun p _ -> fold rules p) p (0 &-- n)
+
+
+    let compile_rules: Rule.t list -> rules_t =
+        List.fold_left (fun m (k, v) -> CharPairMap.add k v m) CharPairMap.empty
+
 
     module CharMap = Map.Make(struct
         type t = char
@@ -49,23 +56,16 @@ module Polymer = struct
 
     type stat_t = int CharMap.t
 
-    let statistics: char Seq.t -> stat_t =
-        let counter = ref 0 in
-        let update_stats stats c =
-            if !counter mod 1000 == 0 then
-                printf "# F %d\x1b[K\r" !counter;
-            counter := !counter + 1;
+    let get_stats: poly_t -> stat_t =
+        CharPairMap.bindings
+            >> List.fold_left (fun m ((x, _), v) -> CharMap.update x (inc_opt v) m) CharMap.empty
 
-            let inc_count = function
-                | None -> Some 1
-                | Some n -> Some (n + 1) in
-            CharMap.update c inc_count stats in
-        Seq.fold_left update_stats (CharMap.empty)
 
     let select_elements: stat_t -> ((char * int) * (char * int)) =
         let select_max_min l =
             (List.hd l, List.rev l |> List.hd) in
-        CharMap.bindings >> List.sort (fun (_, x) (_, y) -> Int.compare y x)
+        CharMap.bindings
+            >> List.sort (fun (_, x) (_, y) -> Int.compare y x)
             >> select_max_min
 end
 
@@ -103,9 +103,9 @@ let () =
 
     File.as_seq Sys.argv.(1)
         |> parse_input
-        |> first List.to_seq
-        |> uncurry (Polymer.expand repeats)
-        |> Polymer.statistics
+        |> second Polymer.compile_rules
+        |> swap |> uncurry (Polymer.fold_stats repeats)
+        |> Polymer.get_stats
         |> Polymer.select_elements
         |> peek (fun ((a, ac), (b, bc)) -> printf "# (%c: %d) (%c: %d)\n" a ac b bc)
         |> both snd |> uncurry (-) |> printf "%d\n"
