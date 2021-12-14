@@ -1,4 +1,5 @@
 val pair: 'a -> 'b -> ('a * 'b)
+val swap: ('a * 'b) -> ('b * 'a)
 val both: ('a -> 'b) -> ('a * 'a) -> ('b * 'b)
 val fork: ('a -> 'b) -> ('a -> 'c) -> 'a -> ('b * 'c)
 val bimap: ('a -> 'c) -> ('b -> 'd) -> ('a * 'b) -> ('c * 'd)

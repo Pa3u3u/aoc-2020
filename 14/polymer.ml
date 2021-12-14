@@ -10,11 +10,20 @@ end
 
 
 module Polymer = struct
-    let expand_once (pseq: char Seq.t) (rules: Rule.t list) =
-        let rec apply a b = function
-            | ((x, y), c)::_ when a = x && b = y -> [a; c]
-            | _::rest -> apply a b rest
-            | [] -> [a] in
+    module RuleMap = Map.Make(struct
+        type t = char * char
+        let compare (a1, a2) (b1, b2) = match Char.compare a1 b1 with
+            | 0 -> Char.compare a2 b2
+            | n -> n
+    end)
+
+    type rules_t = char RuleMap.t
+
+    let expand_once (pseq: char Seq.t) (rules: rules_t) =
+        let apply a b rm = match RuleMap.find_opt (a, b) rm with
+            | Some c -> [a; c]
+            | None -> [a] in
+
         let term = Char.chr 0 in
         let unfolder ((a, s): (char * char Seq.t)) = match s () with
             | Cons (b, rest) -> Some (apply a b rules, (b, rest))
@@ -30,7 +39,8 @@ module Polymer = struct
         expand_once poly >> Seq.flat_map List.to_seq
 
     let expand (n: int) (poly: char Seq.t) (rules: Rule.t list): char Seq.t =
-        List.fold_left (fun p n -> fold_expand_once n p rules) poly (0 &-- n)
+        let rule_map = List.fold_left (fun m (k, v) -> RuleMap.add k v m) RuleMap.empty rules in
+        List.fold_left (fun p n -> fold_expand_once n p rule_map) poly (0 &-- n)
 
     module CharMap = Map.Make(struct
         type t = char
@@ -40,7 +50,12 @@ module Polymer = struct
     type stat_t = int CharMap.t
 
     let statistics: char Seq.t -> stat_t =
+        let counter = ref 0 in
         let update_stats stats c =
+            if !counter mod 1000 == 0 then
+                printf "# F %d\x1b[K\r" !counter;
+            counter := !counter + 1;
+
             let inc_count = function
                 | None -> Some 1
                 | Some n -> Some (n + 1) in
@@ -84,7 +99,7 @@ let () =
         exit 1;
     end;
 
-    let repeats = if argc == 1 then 10 else Num.parse_int_exn Sys.argv.(2) in
+    let repeats = if argc == 1 then 40 else Num.parse_int_exn Sys.argv.(2) in
 
     File.as_seq Sys.argv.(1)
         |> parse_input

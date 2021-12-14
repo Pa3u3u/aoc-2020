@@ -1,4 +1,5 @@
 let pair a b = (a, b)
+let swap (a, b) = (b, a)
 let both f (x, y) = (f x, f y)
 let fork f g a = (f a, g a)
 let bimap f g (x, y) = (f x, g y)
