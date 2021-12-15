@@ -44,7 +44,7 @@ end
 let sim_run (days: int) (pop: Population.t): Population.t =
     let sim_step pop day =
         Population.grow pop
-            |> peek (Population.print (sprintf "After day %3d" (day + 1))) in
+            |> Fun.peek (Population.print (sprintf "After day %3d" (day + 1))) in
 
     List.init days Fun.id (* Generate list [0; 1; … (days - 1)] *)
         |> List.fold_left sim_step pop
@@ -68,7 +68,7 @@ let () =
     Toolbox.File.as_seq Sys.argv.(1)
         |> process_input
         |> Population.from_ages
-        |> peek (Population.print "Initial state")
+        |> Fun.peek (Population.print "Initial state")
         |> sim_run days
         |> Population.count
         |> printf "%d\n"

@@ -1,6 +1,7 @@
 open Printf
 open Toolbox
 open Toolbox.Operators
+open Toolbox.Pair
 
 
 exception Invalid_input of string
@@ -108,7 +109,7 @@ let parse_input: string -> (char list list * char list list) =
     String.split_on_char '|'
         >> List.map String.trim
         >> List.map (String.split_on_char ' ' >> List.map cut_string)
-        >> peek (fun l -> assert(List.length l == 2))
+        >> Fun.peek (fun l -> assert(List.length l == 2))
         >> fork List.hd (List.tl >> List.hd)
 
 

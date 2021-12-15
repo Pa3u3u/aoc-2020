@@ -1,6 +1,7 @@
 open Printf
 open Toolbox
 open Toolbox.Operators
+open Toolbox.Pair
 
 exception Invalid_input of string
 
@@ -107,5 +108,5 @@ let () =
         |> swap |> uncurry (Polymer.fold_stats repeats)
         |> Polymer.get_stats
         |> Polymer.select_elements
-        |> peek (fun ((a, ac), (b, bc)) -> printf "# (%c: %d) (%c: %d)\n" a ac b bc)
+        |> Fun.peek (fun ((a, ac), (b, bc)) -> printf "# (%c: %d) (%c: %d)\n" a ac b bc)
         |> both snd |> uncurry (-) |> printf "%d\n"

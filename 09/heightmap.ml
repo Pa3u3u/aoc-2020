@@ -1,6 +1,8 @@
 open Printf
 open Toolbox
+open Toolbox.Misc
 open Toolbox.Operators
+open Toolbox.Pair
 
 
 exception Invalid_input of string
@@ -29,7 +31,7 @@ module HeightMap = struct
     let load (m: t): int list list -> t =
         let fill_row y =
             List.iteri (fun x v -> m.(y).(x) <- v) in
-        List.iteri fill_row >> const m
+        List.iteri fill_row >> Fun.const m
 
 
     let safe_get (m: t) (x: int) (y: int) =
@@ -50,7 +52,7 @@ let process_input: string Seq.t -> int list list =
             raise (Invalid_input "Map does not contain rows of same width") in
 
     Seq.map String.to_chars >> List.of_seq
-        >> peek (List.map List.length >> verify)
+        >> Fun.peek (List.map List.length >> verify)
         >> List.map (List.map (Char.code >> Fun.flip (-) (Char.code '0')))
 
 
@@ -123,7 +125,7 @@ let () =
         |> process_input
         |> get_height_map
         |> basins
-        |> peek (List.iter (printf "# %d\n"))
+        |> Fun.peek (List.iter (printf "# %d\n"))
         |> List.fold_left ( * ) 1
         |> printf "%d\n"
 

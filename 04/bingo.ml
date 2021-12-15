@@ -1,5 +1,6 @@
 open Printf
 open Toolbox.Operators
+open Toolbox.Pair
 
 
 exception Invalid_input of string
@@ -23,7 +24,7 @@ module RawBoard = struct
         else if empty b then
             (0, 0)
         else
-            Toolbox.fork (List.length) (List.hd >> List.length) b
+            fork (List.length) (List.hd >> List.length) b
 
 
     let of_seq input =
@@ -68,7 +69,7 @@ module Board = struct
 
     let height = Array.length
     let width = Fun.flip Array.get 0 >> Array.length
-    let size = Toolbox.fork width height
+    let size = fork width height
 
 
     let mark (board : board) (n : int) =
@@ -117,7 +118,7 @@ module Board = struct
             Array.iter (fun cell -> printf "%2d%s " cell.value (if cell.mark then "•" else "◦")) row;
             printf "]\n"; in
 
-        Toolbox.uncurry (printf "Board [%d × %d]:\n") (size board);
+        uncurry (printf "Board [%d × %d]:\n") (size board);
         Array.iter print_row board;
 end
 
@@ -140,7 +141,7 @@ let parse_input =
             | (None, node)-> unfold_boards node
         ) in
 
-    read_header >> Toolbox.second (fun s -> unfold_boards (s ()))
+    read_header >> second (fun s -> unfold_boards (s ()))
 
 
 let convert_boards =
@@ -174,8 +175,8 @@ let () =
 
     Toolbox.File.as_seq Sys.argv.(1)
         |> parse_input
-        |> Toolbox.second convert_boards
-        |> Toolbox.uncurry last_board
+        |> second convert_boards
+        |> uncurry last_board
         |> fun (n, board) -> begin
             let board_value = Board.sum_marked board in
                 printf "# drawn number = %d\n" n;

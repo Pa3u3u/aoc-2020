@@ -1,5 +1,6 @@
 open Printf
 open Toolbox.Operators
+open Toolbox.Pair
 
 
 module String = struct
@@ -64,6 +65,6 @@ let () =
 
     Toolbox.File.as_list Sys.argv.(1)
         |> List.map (String.to_list >> (List.map bit_value))
-        |> Toolbox.fork (select (Fun.flip (>=) 0)) (select (Fun.flip (<) 0))
-        |> Toolbox.both reconstruct_number
+        |> fork (select (Fun.flip (>=) 0)) (select (Fun.flip (<) 0))
+        |> both reconstruct_number
         |> fun (o2, co2) -> printf "# [O₂=%d CO₂=%d]\n%d\n" o2 co2 (o2 * co2)

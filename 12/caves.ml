@@ -15,7 +15,7 @@ module Graph = struct
         let to_string = function
             | Start -> "\x1b[92m•\x1b[0m"
             | End -> "\x1b[91m•\x1b[0m"
-            | Node (t, label) -> sprintf "‹%s%s\x1b[0m›" (ifv t "\x1b[33m" "\x1b[37m") label
+            | Node (t, label) -> sprintf "‹%s%s\x1b[0m›" (Misc.ifv t "\x1b[33m" "\x1b[37m") label
     end
 
     type edge = (node * node)
@@ -138,5 +138,5 @@ let () =
         |> parse_input
         |> create_graph
         |> find_paths
-        |> peek (List.iter (Graph.Path.to_string >> printf "# %s\n"))
+        |> Fun.peek (List.iter (Graph.Path.to_string >> printf "# %s\n"))
         |> List.length |> printf "%d\n"

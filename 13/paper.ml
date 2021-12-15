@@ -1,6 +1,7 @@
 open Printf
 open Toolbox
 open Toolbox.Operators
+open Toolbox.Pair
 
 exception Invalid_input of string
 
@@ -33,7 +34,7 @@ module Origami = struct
         let print l: unit =
             let print_row row =
                 printf "# ";
-                Array.iter (fun p -> printf "%s" (ifv p "\x1b[96m█\x1b[0m" "\x1b[37m·\x1b[0m")) row;
+                Array.iter (fun p -> printf "%s" (Misc.ifv p "\x1b[96m█\x1b[0m" "\x1b[37m·\x1b[0m")) row;
                 printf "\n" in
             let w = PaperMatrix.width l in
                 printf "# ";

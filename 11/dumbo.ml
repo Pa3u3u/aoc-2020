@@ -1,5 +1,6 @@
 open Printf
 open Toolbox
+open Toolbox.Pair
 open Toolbox.Operators
 
 exception Invalid_input of string
@@ -42,7 +43,7 @@ let run_simulation: LightMap.m -> int * LightMap.m =
             |> List.filter (SimBoard.valid_point m)
             |> List.filter (fun (x1, y1) -> x != x1 || y != y1) in
 
-    let reset = SimBoard.remap (second (const false)) in
+    let reset = SimBoard.remap (second (Fun.const false)) in
 
     let rec flash m (x, y) =
         let (v, flashed) = m.(y).(x) in
@@ -59,7 +60,7 @@ let run_simulation: LightMap.m -> int * LightMap.m =
     let sim_step m step_num =
         printf "# --- Step %d ---\n" step_num;
         reset m |> (fun m -> SimBoard.iteri (fun p _ -> flash m p) m; m)
-            |> peek SimBoard.print
+            |> Fun.peek SimBoard.print
             |> SimBoard.for_all snd in
 
     (* Steps are counted from 1 *)

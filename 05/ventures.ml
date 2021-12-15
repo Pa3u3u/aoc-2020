@@ -1,5 +1,7 @@
 open Printf
+open Toolbox
 open Toolbox.Operators
+open Toolbox.Pair
 
 
 exception Invalid_input of string
@@ -35,7 +37,7 @@ module Segment = struct
 
 
     let get_range lens (s: t) =
-        let (a, b) = (Toolbox.fork fst snd >> Toolbox.both lens) s in
+        let (a, b) = (fork fst snd >> both lens) s in
         if a == b then
             Toolbox.Seq.repeat a
         else
@@ -47,11 +49,11 @@ module Segment = struct
 
     let get_points (s: t): Point.t list =
         let raw_values =
-            Toolbox.fork range_x range_y
-                >> Toolbox.uncurry Toolbox.Seq.zip
+            fork range_x range_y
+                >> uncurry Toolbox.Seq.zip
                 >> List.of_seq in
         raw_values s
-            |> List.map (Toolbox.uncurry Point.make)
+            |> List.map (uncurry Point.make)
 end
 
 type segment = Segment.t
@@ -116,10 +118,10 @@ let find_max_dim (segment: segment list): int =
 
 
 let create_diagram =
-    Toolbox.fork find_max_dim Fun.id
-        >> Toolbox.first Diagram.make
-        >> Toolbox.uncurry (List.fold_left Diagram.add_segment)
-        >> Toolbox.peek Diagram.print
+    fork find_max_dim Fun.id
+        >> first Diagram.make
+        >> uncurry (List.fold_left Diagram.add_segment)
+        >> Fun.peek Diagram.print
 
 
 let count_dangers =

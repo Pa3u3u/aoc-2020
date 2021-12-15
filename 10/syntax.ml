@@ -112,9 +112,9 @@ let () =
     end;
 
     File.as_seq Sys.argv.(1)
-        |> Seq.map (peek (printf "# input %s\n"))
+        |> Seq.map (Fun.peek (printf "# input %s\n"))
         |> Seq.map String.to_chars
         |> Seq.map Parser.parse
-        |> Seq.map (peek (Parser.state_str >> printf "# %s\n"))
+        |> Seq.map (Fun.peek (Parser.state_str >> printf "# %s\n"))
         |> autocomplete_score
         |> printf "%d\n"
