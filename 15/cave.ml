@@ -58,9 +58,87 @@ end
 type map = DangerMap.m
 type search_map = SearchMap.m
 
+module type PriorityQueueType = sig
+    type k
+    type v
+    val compare: v -> v -> int
+end
+
+module PriorityQueue(MT: PriorityQueueType) = struct
+    type k = MT.k
+    type v = MT.v
+    type p = k * v
+    type t = p list
+
+    let cmp' = MT.compare
+
+    let empty: t = []
+
+    let rec add (k: k) (v: v): t -> t = function
+        | [] -> [(k, v)]
+        | (p, _)::_ when p = k -> raise (Failure "Duplicates!")
+        | (pr, vr)::rest when cmp' v vr < 0 -> (k, v)::(pr, vr)::rest
+        | (pl, vl)::(pr, vr)::rest when cmp' vl v <= 0 && cmp' v vr < 0
+                -> (pl, vl)::(k, v)::(pr, vr)::rest
+        | r::rest -> r :: add k v rest
+
+    let get (k: k): t -> v =
+        List.assoc k
+
+    let peek: t -> k * v =
+        List.hd
+
+    let get_opt (k: k): t -> v option =
+        List.assoc_opt k
+
+    let has (k: k): t -> bool =
+        List.mem_assoc k
+
+    let remove (k: k): t -> t =
+        List.remove_assoc k
+
+    let fetch: t -> ((k * v) * t) = function
+        | h::l -> (h, l)
+        | [] -> raise (Failure "No elements left in the queue")
+
+    let of_list: (k * v) list -> t =
+        List.fold_left (fun l (k, v) -> add k v l) empty
+
+    let rec update (k: k) (f: v option -> v option): t -> t =
+        let rec fix_order_fwd = function
+            | (ka, va)::(kb, vb)::rest when va > vb -> (kb, vb) :: (fix_order_fwd ((ka, va)::rest))
+            | rest -> rest in
+        let fix_order_rev = function
+            | (ka, va)::(kb, vb)::rest when va > vb -> (kb, vb) :: (ka, va)::rest
+            | rest -> rest in
+
+        let update_elt f k v rest = match f v with
+            | Some v' -> fix_order_fwd ((k, v')::rest)
+            | None -> rest in
+
+        function
+        | (k', v)::rest when k = k' -> update_elt f k (Some v) rest
+        | p::rest -> fix_order_rev (p :: update k f rest)
+        | [] -> update_elt f k None []
+
+    let update_ex (k: k) (f: v -> v): t -> t =
+        update k (Option.map f)
+end
+
 
 module Search = struct
     module Unvisited = struct
+        type k = pt
+        type v = SearchMap.v
+        let compare (a: v) (b: v) =
+            Int.compare a.dist b.dist
+    end
+
+    module PQ = struct
+        include PriorityQueue(Unvisited)
+    end
+
+    module Unvisited' = struct
         type t = pt * SearchMap.v
         let compare ((p1, vt1): t) ((p2, vt2): t) =
             match Int.compare vt1.dist vt2.dist with
@@ -68,35 +146,18 @@ module Search = struct
                 | n -> n
     end
 
-    module UnvisitedSet = struct
-        include Set.Make(Unvisited)
-
-        let pt_mem (p: pt) =
-            exists (fun (p', _) -> Point.equals p' p)
-
-        let pt_get (p: pt) =
-            partition (fun (p', _) -> Point.equals p p')
-                >> fst >> choose
-
-        let pt_update (p: pt) (f: SearchMap.v -> SearchMap.v) s =
-            let (sg, rest) = partition (fun (p', _) -> Point.equals p p') s in
-            let (_, v) = choose sg in
-            add (p, f v) rest
-    end
-
-    type unvisited = UnvisitedSet.t
+    type pqueue = PQ.t
 
     class dijkstra (m: map) = object (self)
-        val mutable sm = SearchMap.lift m
+        val mutable sm = SearchMap.create 0 0
 
-        method private mark (p: pt) (u: unvisited) =
-            let (_, r) = UnvisitedSet.pt_get p u in
+        method private mark (p: pt) (u: pqueue) =
+            let r = PQ.get p u in
             sm.(p.y).(p.x) <- r;
-                UnvisitedSet.remove (p, r) u
+                PQ.remove p u
 
-        method private select_next (u: unvisited): pt * unvisited =
-            let next = UnvisitedSet.min_elt u in
-            (fst next, u)
+        method private select_next (u: pqueue): pt * pqueue =
+            (PQ.peek u, u) |> first fst
 
         method private neighbours (p: pt) =
            let offsets = [(-1, 0); (1, 0); (0, -1); (0, 1)] in
@@ -104,36 +165,35 @@ module Search = struct
                |> List.filter (SearchMap.valid_point sm)
                |> List.map Point.from_tup
 
-        method uset: unvisited =
-            List.product (0 &-- DangerMap.width m) (0 &-- DangerMap.height m)
-                |> List.map Point.from_tup
-                |> List.map (fun p -> (p, SearchMap.empty_value ()))
-                |> UnvisitedSet.of_list
-                |> UnvisitedSet.pt_update {x=0; y=0} (fun _ -> {dist = 0; source = None})
+        method uset (start: pt): pqueue =
+            PQ.empty |> PQ.add start {source = None; dist = 0}
 
-        method private search' (target: pt) (start: pt) (u: unvisited) =
-            sm.(start.y).(start.x) <- UnvisitedSet.pt_get start u |> snd;
+
+        method private search' (v: ptset) (target: pt) (start: pt) (u: pqueue) =
+            sm.(start.y).(start.x) <- PQ.get start u;
             let cur_d = sm.(start.y).(start.x).dist in
 
-            let update_distance (u: unvisited) (n: pt) =
+            let update_distance (u: pqueue) (n: pt) =
                 let cost = m.(n.y).(n.x) in
-                let updater (tentative: SearchMap.value_type): SearchMap.value_type =
-                    if cur_d + cost < tentative.dist
-                    then { source = Some start; dist = cur_d + cost}
-                    else tentative in
-                UnvisitedSet.pt_update n updater u in
+                let new_entry: SearchMap.v = { source = Some start; dist = cur_d + cost } in
+                let updater: SearchMap.v option -> SearchMap.v option = function
+                    | None -> Some new_entry
+                    | Some p when cur_d + cost < p.dist -> Some new_entry
+                    | n -> n in
+                PQ.update n updater u in
 
             if Point.equals start target
             then begin self#mark start u |> ignore; sm end
             else self#neighbours start
-                    |> List.filter (Fun.flip UnvisitedSet.pt_mem u)
+                    |> List.filter (Fun.flip PointSet.mem v >> not)
                     |> List.fold_left update_distance u
                     |> self#mark start
                     |> self#select_next
-                    |> uncurry (self#search' target)
+                    |> uncurry (self#search' (PointSet.add start v) target)
 
         method search (start: pt) (target: pt) =
-            self#search' target start self#uset
+            sm <- SearchMap.lift m;
+            self#search' (PointSet.empty) target start (self#uset start)
     end
 
 
