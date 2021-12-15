@@ -5,18 +5,6 @@ open Toolbox.Pair
 
 exception Invalid_input of string
 
-module DangerMap = struct
-    include Matrix.Make(struct
-        type t = int
-        let init = 0
-    end)
-
-    let parse = Seq.map String.to_chars
-        >> Seq.map (List.map (Char.code >> Fun.flip (-) (Char.code '0')))
-        >> List.of_seq
-        >> from_lists
-end
-
 module Point = struct
     type t = { x: int; y: int }
     let to_tup p = (p.x, p.y)
@@ -29,6 +17,52 @@ module Point = struct
     let equals p1 p2 = p1.x = p2.x && p1.y = p2.y
 end
 
+module type TileT = sig
+    type t
+    val init: t
+    val parse: char -> t
+end
+
+module Tile(TT: TileT) = struct
+    include Matrix.Make(TT)
+
+    let parse = Seq.map String.to_chars
+        >> Seq.map (List.map TT.parse)
+        >> List.of_seq
+        >> from_lists
+end
+
+module type TiledViewT = sig
+    include TileT
+    val remap: (int * int) -> t -> t
+end
+
+module TiledView(TWT: TiledViewT) = struct
+    module Tile = Tile(TWT)
+    type m = TWT.t Tile.t
+    type t = (m * int * int)
+
+    let create m tw th = (m, tw, th)
+
+    let width (mm, tw, _) = (Tile.width mm) * tw
+    let height (mm, _, th) = (Tile.height mm) * th
+
+    let _mm (mm, _, _) = mm
+
+    let _coords mm (virt_x, virt_y) =
+        let w = Tile.width mm and h = Tile.height mm in
+        let tile_x = virt_x / w and tile_y = virt_y / h in
+        let real_x = virt_x mod w and real_y = virt_y mod h in
+        ((tile_x, real_x), (tile_y, real_y))
+
+    let get (mm, _, _) p =
+        let ((tile_x, real_x), (tile_y, real_y)) = _coords mm p in
+        TWT.remap (tile_x, tile_y) mm.(real_y).(real_x)
+
+    let valid_point m (virt_x, virt_y) =
+            0 <= virt_x && virt_x < (width m)
+        &&  0 <= virt_y && virt_y < (height m)
+end
 
 type pt = Point.t
 
@@ -36,27 +70,17 @@ module PointSet = Set.Make(Point)
 type ptset = PointSet.t
 
 
-module SearchMap = struct
-    type value_type = {
-        dist: int;
-        source: pt option
-    }
-
-    let empty_value _ = {dist = Int.max_int; source = None}
-
-    include Matrix.Make(struct
-        type t = value_type
-        let init = empty_value ()
-    end)
-
-    let lift =
-        let blank _ = { dist = Int.max_int; source = None } in
-        map (fun _ -> blank ())
+module RepeatingTiles = struct
+    type t = int
+    let init = 0
+    let remap (tile_x, tile_y) v =
+        ((v + tile_x + tile_y - 1) mod 9) + 1
+    let parse = Char.code >> Fun.flip (-) (Char.code '0')
 end
 
+module CaveMap = TiledView(RepeatingTiles)
 
-type map = DangerMap.m
-type search_map = SearchMap.m
+type map = CaveMap.t
 
 module type PriorityQueueType = sig
     type k
@@ -126,10 +150,24 @@ module PriorityQueue(MT: PriorityQueueType) = struct
 end
 
 
+module VisitedPoints = Hashtbl.Make(struct
+    type t = pt
+    let equal = Point.equals
+    let hash (pt: pt) = pt.y * 256 + pt.x
+end)
+
+
 module Search = struct
+    type data_t = {
+        dist: int;
+        source: pt option
+    }
+
+    type visited = data_t VisitedPoints.t
+
     module Unvisited = struct
         type k = pt
-        type v = SearchMap.v
+        type v = data_t
         let compare (a: v) (b: v) =
             Int.compare a.dist b.dist
     end
@@ -138,23 +176,10 @@ module Search = struct
         include PriorityQueue(Unvisited)
     end
 
-    module Unvisited' = struct
-        type t = pt * SearchMap.v
-        let compare ((p1, vt1): t) ((p2, vt2): t) =
-            match Int.compare vt1.dist vt2.dist with
-                | 0 -> Point.compare p1 p2
-                | n -> n
-    end
-
     type pqueue = PQ.t
 
     class dijkstra (m: map) = object (self)
-        val mutable sm = SearchMap.create 0 0
-
-        method private mark (p: pt) (u: pqueue) =
-            let r = PQ.get p u in
-            sm.(p.y).(p.x) <- r;
-                PQ.remove p u
+        val sm = VisitedPoints.create 50
 
         method private select_next (u: pqueue): pt * pqueue =
             (PQ.peek u, u) |> first fst
@@ -162,52 +187,67 @@ module Search = struct
         method private neighbours (p: pt) =
            let offsets = [(-1, 0); (1, 0); (0, -1); (0, 1)] in
            List.map (lift2 (+) (p.x, p.y)) offsets
-               |> List.filter (SearchMap.valid_point sm)
+               |> List.filter (CaveMap.valid_point m)
                |> List.map Point.from_tup
 
         method uset (start: pt): pqueue =
             PQ.empty |> PQ.add start {source = None; dist = 0}
 
 
+        method private _dump (start: pt) (u: pqueue) =
+            printf "# --- dump [%d %d] ---\n" start.x start.y;
+
+            printf "# v:  {\n";
+            VisitedPoints.iter (fun k v -> printf "#     [%d %d]=%d\n" k.x k.y v.dist) sm;
+            printf "# }\n";
+
+            printf "# pq: {\n";
+            List.iter (fun ((k, v): pt * data_t) -> printf "#     [%d %d]=%d\n" k.x k.y v.dist) u;
+            printf "# }\n";
+            Stdlib.(flush stdout)
+
+
         method private search' (v: ptset) (target: pt) (start: pt) (u: pqueue) =
-            sm.(start.y).(start.x) <- PQ.get start u;
-            let cur_d = sm.(start.y).(start.x).dist in
+            let cur_v = PQ.get start u in
+                VisitedPoints.add sm start cur_v;
+
+            let cur_d = cur_v.dist in
 
             let update_distance (u: pqueue) (n: pt) =
-                let cost = m.(n.y).(n.x) in
-                let new_entry: SearchMap.v = { source = Some start; dist = cur_d + cost } in
-                let updater: SearchMap.v option -> SearchMap.v option = function
+                let cost = CaveMap.get m (n.x, n.y) in
+                let new_entry: data_t = { source = Some start; dist = cur_d + cost } in
+                let updater: data_t option -> data_t option = function
                     | None -> Some new_entry
                     | Some p when cur_d + cost < p.dist -> Some new_entry
                     | n -> n in
                 PQ.update n updater u in
 
             if Point.equals start target
-            then begin self#mark start u |> ignore; sm end
+            then begin PQ.remove start u |> ignore; sm end
             else self#neighbours start
                     |> List.filter (Fun.flip PointSet.mem v >> not)
                     |> List.fold_left update_distance u
-                    |> self#mark start
+                    |> PQ.remove start
                     |> self#select_next
                     |> uncurry (self#search' (PointSet.add start v) target)
 
         method search (start: pt) (target: pt) =
-            sm <- SearchMap.lift m;
+            VisitedPoints.reset sm;
             self#search' (PointSet.empty) target start (self#uset start)
     end
 
 
     let run (m: map): (int * ptset) =
-        let target = fork DangerMap.width DangerMap.height m
+        let target = fork CaveMap.width CaveMap.height m
                 |> both (Fun.flip (-) 1)
                 |> Point.from_tup in
 
-        let final_cost (sm: SearchMap.m) =
-            sm.(target.y).(target.x).dist in
+        let final_cost (v: visited) =
+            (VisitedPoints.find v target).dist in
 
-        let reconstruct_path (sm: SearchMap.m) =
+        let reconstruct_path (v: visited) =
             let unfolder: pt option -> (pt * pt option) option = function
-                | Some p -> Some (p, sm.(p.y).(p.x).source)
+                | Some p -> Some (p, (VisitedPoints.find v p).source)
                 | None -> None in
             Seq.unfold unfolder (Some target)
                 |> Seq.fold_left (Fun.flip PointSet.add) PointSet.empty in
@@ -223,12 +263,18 @@ let print_path (map: map) (path: ptset) =
         if PointSet.mem (Point.from_tup p) path
         then format_of_string "\x1b[97m%d\x1b[0m"
         else format_of_string "%d" in
-    let print_row y row =
+
+    let indices_y = (0 &-- CaveMap.height map)
+    and indices_x = (0 &-- CaveMap.width map) in
+
+    let iter_cell y x =
+        printf (fmt (x, y)) (CaveMap.get map (x, y)) in
+
+    let iter_row y =
         printf "# ";
-        Array.iteri (fun x v -> printf (fmt (x, y)) v) row;
-        printf "\n";
-        Stdlib.(flush stdout) in
-    Array.iteri print_row map
+        List.iter (iter_cell y) indices_x;
+        printf "\n" in
+    List.iter (iter_row) indices_y
 
 
 let () =
@@ -241,8 +287,9 @@ let () =
 
     Printexc.record_backtrace true;
     File.as_seq Sys.argv.(1)
-        |> DangerMap.parse
+        |> CaveMap.Tile.parse
+        |> fun m -> CaveMap.create m 1 1
         |> fun map -> map
         |> Search.run
-        |> Fun.peek (snd >> print_path map)
+        (*|> Fun.peek (snd >> print_path map)*)
         |> fst |> printf "%d\n"
