@@ -288,7 +288,7 @@ let () =
     Printexc.record_backtrace true;
     File.as_seq Sys.argv.(1)
         |> CaveMap.Tile.parse
-        |> fun m -> CaveMap.create m 1 1
+        |> fun m -> CaveMap.create m 5 5
         |> fun map -> map
         |> Search.run
         (*|> Fun.peek (snd >> print_path map)*)
