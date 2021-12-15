@@ -1,23 +1,35 @@
-val pair: 'a -> 'b -> ('a * 'b)
-val swap: ('a * 'b) -> ('b * 'a)
-val both: ('a -> 'b) -> ('a * 'a) -> ('b * 'b)
-val fork: ('a -> 'b) -> ('a -> 'c) -> 'a -> ('b * 'c)
-val bimap: ('a -> 'c) -> ('b -> 'd) -> ('a * 'b) -> ('c * 'd)
+module Fun: sig
+    include module type of Fun
 
-val curry: (('a * 'b) -> 'c) -> 'a -> 'b -> 'c
-val uncurry: ('a -> 'b -> 'c) -> ('a * 'b) -> 'c
+    val const: 'a -> 'b -> 'a
+    val peek: ('a -> unit) -> 'a -> 'a
+    val shift: ('a -> 'b) -> 'x -> 'a -> 'b
+end
 
-val first: ('a -> 'b) -> ('a * 'c) -> ('b * 'c)
-val second: ('b -> 'c) -> ('a * 'b) -> ('a * 'c)
-val peek: ('a -> unit) -> 'a -> 'a
 
-val const: 'a -> 'b -> 'a
-val dup: 'a -> 'a * 'a
+module Misc: sig
+    val ifv: bool -> 'a -> 'a -> 'a
+    val guard: ('a -> 'b) -> ('a -> 'b option) -> 'a -> 'b
+end
 
-val ifv: bool -> 'a -> 'a -> 'a
-val shift: ('a -> 'b) -> 'x -> 'a -> 'b
 
-val guard: ('a -> 'b) -> ('a -> 'b option) -> 'a -> 'b
+module Pair: sig
+    val make: 'a -> 'b -> ('a * 'b)
+    val dup: 'a -> 'a * 'a
+    val swap: ('a * 'b) -> ('b * 'a)
+
+    val fork: ('a -> 'b) -> ('a -> 'c) -> 'a -> ('b * 'c)
+
+    val first: ('a -> 'b) -> ('a * 'c) -> ('b * 'c)
+    val second: ('b -> 'c) -> ('a * 'b) -> ('a * 'c)
+    val both: ('a -> 'b) -> ('a * 'a) -> ('b * 'b)
+    val bimap: ('a -> 'c) -> ('b -> 'd) -> ('a * 'b) -> ('c * 'd)
+
+    val lift2: ('a -> 'b -> 'c) -> ('a * 'a) -> ('b * 'b) -> ('c * 'c)
+
+    val curry: (('a * 'b) -> 'c) -> 'a -> 'b -> 'c
+    val uncurry: ('a -> 'b -> 'c) -> ('a * 'b) -> 'c
+end
 
 
 module Array: sig
@@ -70,6 +82,7 @@ end
 
 module List: sig
     include module type of List
+    val reject: ('a -> bool) -> 'a list -> 'a list
     val equal: ('a -> 'a -> bool) -> 'a list -> 'a list -> bool
     val map_pairs: ('a -> 'a -> 'b) -> 'a list -> 'b list
     val sum: int list -> int

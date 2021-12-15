@@ -1,28 +1,19 @@
-let pair a b = (a, b)
-let swap (a, b) = (b, a)
-let both f (x, y) = (f x, f y)
-let fork f g a = (f a, g a)
-let bimap f g (x, y) = (f x, g y)
+module Fun = struct
+    include Fun
 
-let curry f a b = f (a, b)
-let uncurry f (a, b) = f a b
+    let const a _ = a
+    let peek f v = f v; v
+    let shift f _ = f
+end
 
-let first f (a, b) = (f a, b)
-let second f (a, b) = (a, f b)
+module Misc = struct
+    let ifv (c: bool) (if_true: 'a) (if_false: 'a): 'a =
+        if c then if_true else if_false
 
-let peek f v = f v; v
-
-let const a _ = a
-let dup a = (a, a)
-
-let ifv (c: bool) (if_true: 'a) (if_false: 'a): 'a =
-    if c then if_true else if_false
-
-let shift f _ = f
-
-let guard ex (f: 'a -> 'b option) (v: 'a): 'b = match f v with
-    | Some x -> x
-    | None -> (ex v)
+    let guard ex (f: 'a -> 'b option) (v: 'a): 'b = match f v with
+        | Some x -> x
+        | None -> (ex v)
+end
 
 
 module Operators = struct
@@ -30,6 +21,26 @@ module Operators = struct
     let (>>) f g x = g (f x)
 
     let (&--) a z = List.init (z - a) ((+) a)
+end
+
+
+module Pair = struct
+    open Operators
+    let make a b = (a, b)
+    let dup x = (x, x)
+    let swap (a, b) = (b, a)
+
+    let fork f g x = (f x, g x)
+
+    let first f (a, b) = (f a, b)
+    let second f (a, b) = (a, f b)
+    let both f = first f >> second f
+    let bimap f g = first f >> second g
+
+    let lift2 f (a, b) (c, d) = (f a c, f b d)
+
+    let curry f a b = f (a, b)
+    let uncurry f (a, b) = f a b
 end
 
 
@@ -79,7 +90,9 @@ module Matrix = struct
 
 
     module Make (MT: MatrixType) = struct
+        open Fun
         open Operators
+        open Pair
 
         type v = MT.t
         type 'a t = 'a array array
@@ -156,12 +169,17 @@ module Num = struct
 
 
     let parse_int_exn =
-        guard (fun s -> raise (Parse_error (Printf.sprintf "%s: Not a valid number" s))) parse_int
+        Misc.guard (fun s -> raise (Parse_error (Printf.sprintf "%s: Not a valid number" s))) parse_int
 end
 
 
 module List = struct
+    open Operators
     include List
+
+
+    let reject (f: 'a -> bool): 'a list -> 'a list =
+        List.filter (f >> not)
 
 
     let rec equal (cmp: 'a -> 'a -> bool) (l: 'a list) (r: 'a list): bool =
@@ -260,7 +278,7 @@ module Seq = struct
 
 
     let zip (left: 'a Seq.t) (right: 'b Seq.t): ('a * 'b) Seq.t =
-        zip_with pair left right
+        zip_with Pair.make left right
 
 
     let rec find_opt (p: 'a -> bool) (s: 'a Seq.t): 'a option = match s() with
