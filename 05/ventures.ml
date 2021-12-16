@@ -121,7 +121,7 @@ let create_diagram =
     fork find_max_dim Fun.id
         >> first Diagram.make
         >> uncurry (List.fold_left Diagram.add_segment)
-        >> Fun.peek Diagram.print
+        (* >> Fun.peek Diagram.print *)
 
 
 let count_dangers =
