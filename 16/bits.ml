@@ -119,9 +119,9 @@ module BITS = struct
                 | Some (_, s') -> count_subpackets (p, s')
                 | None -> None
 
-        let rec decode (x: int) (s: bitstream) (p: t): pstate option =
+        let rec decode (s: bitstream) (p: t): pstate option =
             Some (p, s) >>= decode_version >>= decode_type
-                >>= (try_literal <|> try_subpackets (decode (x + 1)))
+                >>= (try_literal <|> try_subpackets decode)
 
         let print =
             let rec print_d off p =
@@ -136,7 +136,7 @@ module BITS = struct
     end
 
     let decode (s: bitstream): RawPacket.t option =
-        Fun.flip (RawPacket.decode 0) RawPacket.empty s
+        Fun.flip RawPacket.decode RawPacket.empty s
             >>= (fst >> Option.some)
 
 
