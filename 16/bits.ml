@@ -138,6 +138,52 @@ module BITS = struct
     let decode (s: bitstream): RawPacket.t option =
         Fun.flip (RawPacket.decode 0) RawPacket.empty s
             >>= (fst >> Option.some)
+
+
+    module Packet = struct
+        type t =
+            | Aggregation of string * t list * (int list -> int)
+            | Comparison of string * (t * t) * (int -> int -> bool)
+            | Literal of int
+
+        let minimum =
+            List.fold_left (fun a v -> if a < v then a else v) Int.max_int
+        let maximum =
+            List.fold_left (fun a v -> if a > v then a else v) Int.min_int
+
+        let rec from_raw (r: RawPacket.t): t =
+            let unwrap = function
+                | a::b::[] -> (a, b)
+                | _ -> raise (Failure "Invalid number of packets in expression") in
+            let children = List.map from_raw r.subpackets in
+
+            match r.type_id with
+            | 0 -> Aggregation ("Σ", children, List.sum)
+            | 1 -> Aggregation ("Π", children, List.prod)
+            | 2 -> Aggregation ("min", children, minimum)
+            | 3 -> Aggregation ("max", children, maximum)
+            | 4 -> Literal r.value
+            | 5 -> Comparison (">", unwrap children, (>))
+            | 6 -> Comparison ("<", unwrap children, (<))
+            | 7 -> Comparison ("=", unwrap children, (=))
+            | t -> raise (Failure (sprintf "Unknown packet type %d\n" t))
+
+        let rec eval (p: t) = match p with
+            | Literal v -> v
+            | Aggregation (_, l, f) -> f (List.map eval l)
+            | Comparison (_, (a, b), p) -> if p (eval a) (eval b) then 1 else 0
+
+        let rec to_string (p: t) =
+            match p with
+                | Literal l -> sprintf "%d" l
+                | Aggregation (s, l, _) ->
+                        sprintf "%s(%s)" s (String.concat "; " (List.map to_string l))
+                | Comparison (s, (a, b), _) ->
+                        sprintf "%s %s %s" (to_string a) s (to_string b)
+
+        let print (p: t) =
+            printf "# %s\n" (to_string p)
+    end
 end
 
 
@@ -199,5 +245,6 @@ let () =
         (*|> Fun.peek (dump_bits)*)
         |> BITS.BitStream.from_bits
         |> BITS.decode
-        |> Fun.peek (Option.iter BITS.RawPacket.print)
-        |> Option.iter (sum_versions >> printf "%d\n")
+        |> Option.map BITS.Packet.from_raw
+        |> Fun.peek (Option.iter BITS.Packet.print)
+        |> Option.iter (BITS.Packet.eval >> printf "%d\n")
