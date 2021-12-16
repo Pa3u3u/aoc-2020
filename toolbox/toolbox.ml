@@ -195,7 +195,8 @@ module List = struct
         | _ -> raise (Failure "The list does not have even length")
 
 
-    let sum: int list -> int  = List.fold_left (+) 0
+    let sum: int list -> int = List.fold_left (+) 0
+    let prod: int list -> int = List.fold_left ( * ) 1
 
 
     let flist (functions: ('a -> 'b) list) (value: 'a): 'b list =

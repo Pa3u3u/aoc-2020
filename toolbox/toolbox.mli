@@ -85,10 +85,12 @@ module List: sig
     val reject: ('a -> bool) -> 'a list -> 'a list
     val equal: ('a -> 'a -> bool) -> 'a list -> 'a list -> bool
     val map_pairs: ('a -> 'a -> 'b) -> 'a list -> 'b list
-    val sum: int list -> int
     val flist: (('a -> 'b) list) -> 'a -> 'b list
     val take: int -> 'a list -> 'a list
     val product: 'a list -> 'b list -> ('a * 'b) list
+
+    val sum: int list -> int
+    val prod: int list -> int
 end
 
 
