@@ -35,9 +35,21 @@ verify: $(INSPECT) $(EXAMPLE).in $(EXAMPLE).out
 		| grep -Ev '^#' \
 		| diff --color=always -u /dev/stdin $(EXAMPLE).out
 
+answers: $(patsubst %.exe,%.ANSWER,$(EXECUTABLES))
+
+%.ANSWER:
+	@echo -e "\e[7;92m----------------\e[0m"
+	@echo -e "\e[7;92m---- Day $(firstword $(subst /, ,$*)) ----\e[0m"
+	@echo -e "\e[7;92m----------------\e[0m"
+	@$(DUNE) exe $*.exe $(dir $*)input | tail
+	@echo
+
 clean:
 	$(DUNE) clean $(DUNEOPT)
 
 .PHONY:         \
 	all     \
+	answer  \
+	answers \
+	verify  \
 	clean
