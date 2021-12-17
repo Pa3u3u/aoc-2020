@@ -1,0 +1,3 @@
+(executable
+ (name ballistics)
+ (libraries str toolbox))
