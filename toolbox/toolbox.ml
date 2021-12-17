@@ -195,10 +195,6 @@ module List = struct
         | _ -> raise (Failure "The list does not have even length")
 
 
-    let sum: int list -> int = List.fold_left (+) 0
-    let prod: int list -> int = List.fold_left ( * ) 1
-
-
     let flist (functions: ('a -> 'b) list) (value: 'a): 'b list =
         List.map (fun f -> f value) functions
 
@@ -215,6 +211,14 @@ module List = struct
         match la with
         | [] -> []
         | a::rest -> List.append (prod a lb) (product rest lb)
+
+
+    let rec populate p f v =
+        if p v then v :: populate p f (f v)
+            else []
+
+    let sum: int list -> int = List.fold_left (+) 0
+    let prod: int list -> int = List.fold_left ( * ) 1
 end
 
 
@@ -267,8 +271,13 @@ module Seq = struct
     include Seq
 
 
-    let repeat (v: 'a): 'a Seq.t  =
+    let repeat (v: 'a): 'a Seq.t =
         Seq.unfold (fun x -> Some (x, x)) v
+
+
+    let populate (p: 'a -> bool) (f: 'a -> 'a) (v: 'a): 'a Seq.t =
+        let unfolder v = if p v then Some (v, f v) else None in
+        Seq.unfold unfolder v
 
 
     let zip_with (f: 'a -> 'b -> 'c) (left: 'a Seq.t) (right: 'b Seq.t): 'c Seq.t =

@@ -88,6 +88,7 @@ module List: sig
     val flist: (('a -> 'b) list) -> 'a -> 'b list
     val take: int -> 'a list -> 'a list
     val product: 'a list -> 'b list -> ('a * 'b) list
+    val populate: ('a -> bool) -> ('a -> 'a) -> 'a -> 'a list
 
     val sum: int list -> int
     val prod: int list -> int
@@ -117,6 +118,7 @@ end
 module Seq: sig
     include module type of Seq
     val repeat: 'a -> 'a Seq.t
+    val populate: ('a -> bool) -> ('a -> 'a) -> 'a -> 'a Seq.t
     val zip_with: ('a -> 'b -> 'c) -> 'a Seq.t -> 'b Seq.t -> 'c Seq.t
     val zip: 'a Seq.t -> 'b Seq.t -> ('a * 'b) Seq.t
     val find_opt: ('a -> bool) -> 'a Seq.t -> 'a option
