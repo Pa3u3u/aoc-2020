@@ -65,10 +65,11 @@ module Phys = struct
             In x direction (⟦a = -1⟧) the probe will travel for at most
             ⟦T = v₀⟧ steps, hence
 
-            • we will overshoot if ⟦s(1) > x₂⟧ → ⟦v₀ > x₂⟧.
-            • we will undershoot if ⟦s(T) < x₁⟧ for ⟦T = v⟧, which yields
-              the minimum initial speed
-                         ______________
+            • we will overshoot if ⟦s(1) > x₂⟧ → ⟦v₀ > x₂⟧, so the maximum
+              initial speed is ⟦x₂⟧.
+            • we will undershoot if ⟦s(T) < x₁⟧ for ⟦T = v⟧. So, the
+              the minimum initial speed is
+                          _______________
                      a + √a² + 8x₁(a + 2)
                 v₀ ≥ --------------------
                            2(2 + a)
@@ -76,7 +77,7 @@ module Phys = struct
               and for ⟦a = -1⟧ we get simply
 
                      1        _______
-                v₀ < - (-1 + √1 + 8x₁)
+                v₀ ≥ - (-1 + √1 + 8x₁)
                      2
          *)
 
@@ -86,49 +87,53 @@ module Phys = struct
 
             (minv, a.x.max)
 
-        (*  In y direction, we will shift the directive. If ⟦v₀ > 0⟧, then
-            the probe will travel upwards with ⟦a = -1⟧ until it reaches
-            velocity ⟦v = 0⟧ in ⟦T = v₀⟧ steps, reaching height
+        (*  In y direction, if ⟦v₀ > 0⟧, then the probe will travel upwards
+            with ⟦a = -1⟧ until it reaches velocity ⟦v = 0⟧ in ⟦T = v₀⟧ steps,
+            reaching height
 
                                    1
                 H = s(T) = s(v₀) = - v₀ (v₀ + 1)
                                    2
 
             It will then fall down, reaching its initial position with speed
-            ⟦v' = -(v + 1)⟧ at time ⟦2 * |v₀| + 1⟧.
+            ⟦v' = -(v + 1)⟧ at time ⟦2v₀ + 1⟧.
 
             We cannot undershoot the area, as even with ⟦v₀ = 0⟧ the probe
             will accelerate downwards. We may overshoot it though in two
             cases:
-              • we shoot downwards with such an initial speed that
-                ⟦s(1) < y₂⟧, that is, ⟦v₀ < y₂⟧,
-              • we shoot upwards with such a speed that when the probe
-                gets back to ⟦(0, 0)⟧, its speed ⟦v'⟧ will overshoot,
-                that is, ⟦s'(1) < y₂⟧ → ⟦v₀' < y₂⟧ → ⟦-(v₀ + 1) > y₂⟧
-                → ⟦v₀ > -(1 + y₂)⟧.
+
+            • we shoot downwards ⟦v₀ < 0⟧ with such an initial speed that
+              ⟦s(1) < y₂⟧ → ⟦v₀ < y₂⟧, so it must be at least ⟦y₂⟧,
+            • we shoot upwards with such a speed that when the probe
+              gets back to ⟦(0, 0)⟧, its speed ⟦v'⟧ will overshoot,
+              that is, ⟦s'(1) < y₂⟧ → ⟦v₀' < y₂⟧ → ⟦-(v₀ + 1) > y₂⟧
+              → ⟦v₀ > -(1 + y₂)⟧, so the initial speed must not be
+              greater than ⟦-(1 + y₂)⟧.
         *)
 
         let valid_vy (a: area): (int * int) =
             (a.y.max, -(1 + a.y.max))
 
-        (*  For part one we only consider ⟦v₀ < 0⟧, that is, ⟦v₀' > 0⟧ when
+        (*  For part one we only consider ⟦v₀ > 0⟧, that is, ⟦v₀' < 0⟧ when
             the probe gets back to ⟦(0, 0)⟧. Here, with acceleration
             ⟦a = -1⟧, we want to know if there is any ⟦t⟧ such that
 
-                A ≤ s'(t) ∧ s'(t) ≤ B
+                y₁ ≤ s'(t) ≤ y₂
 
-            for an area with boundary ⟦⟨A, B⟩⟧. We will find the smallest
-            ⟦t⟧, call it ⟦τ⟧, that satisfies the first inequality:
+            for an area with boundary ⟦⟨y₁, y₂⟩⟧.
+            (Note that we should compare absolute values, since all those
+            values will be negative.)
 
-                D = (2v₀ - a)² + 8Aa
+            We will find the smallest ⟦t⟧, call it ⟦τ⟧, that satisfies
+            the first inequality:
 
-                    ┌╴                ╶┐
-                    │  1            _  │
-                τ = │ -- (a - 2v ± √D) │
-                    │ 2a               │
+                    ┌╴                                ╶┐
+                    │  1            _________________  │
+                τ = │ -- (a - 2v ± √(2v₀ - a)² + 8y₁a) │
+                    │ 2a                               │
 
             From the two possibilities we of course only choose ⟦t ≥ 0⟧.
-            Then we simply verify that ⟦s'(τ) ≤ B⟧ to see whether
+            Then we simply verify that ⟦s'(τ) ≤ y₂⟧ to see whether
             we hit the area or not.
         *)
 
@@ -172,7 +177,7 @@ module Phys = struct
         let maximum =
             List.fold_left (fun a v -> if a > v then a else v) Int.min_int in
 
-        (* Select valid (upwards) v₀ for y speed *)
+        (* Select valid (upwards) v₀ for speed along y. *)
         Ballistics.valid_vy a
             |> (fun (a, b) -> a &-- (b + 1))
             |> List.filter (fun v -> v > 0)
