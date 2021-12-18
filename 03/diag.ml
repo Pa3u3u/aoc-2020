@@ -1,6 +1,7 @@
 open Printf
+open Toolbox.Core
+open Toolbox.Core.Pair
 open Toolbox.Operators
-open Toolbox.Pair
 
 
 module String = struct
@@ -63,7 +64,7 @@ let () =
         exit 1;
     end;
 
-    Toolbox.File.as_list Sys.argv.(1)
+    File.as_list Sys.argv.(1)
         |> List.map (String.to_list >> (List.map bit_value))
         |> fork (select (Fun.flip (>=) 0)) (select (Fun.flip (<) 0))
         |> both reconstruct_number

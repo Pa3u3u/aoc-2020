@@ -1,8 +1,9 @@
 open Printf
+open Toolbox.Core
 
 
 let convert_input = function
-    | a::b::[] -> Some (a, Toolbox.Num.parse_int b)
+    | a::b::[] -> Some (a, Num.parse_int b)
     | _ -> None
 
 
@@ -58,7 +59,7 @@ let () =
         exit 1;
     end;
 
-    Toolbox.File.as_seq Sys.argv.(1)
+    File.as_seq Sys.argv.(1)
         |> process_input
         |> Seq.fold_left (Fun.flip interpret) initial_position
         |> print_position

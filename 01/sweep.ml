@@ -1,4 +1,5 @@
 open Printf
+open Toolbox.Core
 
 
 let count_increases (state, counter) next = match (state, next) with
@@ -36,8 +37,8 @@ let () =
         exit 1;
     end;
 
-    Toolbox.File.as_seq Sys.argv.(1)
-        |> Seq.filter_map Toolbox.Num.parse_int
+    File.as_seq Sys.argv.(1)
+        |> Seq.filter_map Num.parse_int
         |> transform_data 3
         |> Seq.fold_left count_increases (None, 0)
         |> snd

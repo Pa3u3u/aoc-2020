@@ -1,7 +1,7 @@
 open Printf
-open Toolbox
+open Toolbox.Core
+open Toolbox.Core.Pair
 open Toolbox.Operators
-open Toolbox.Pair
 
 
 exception Invalid_input of string
@@ -39,9 +39,9 @@ module Segment = struct
     let get_range lens (s: t) =
         let (a, b) = (fork fst snd >> both lens) s in
         if a == b then
-            Toolbox.Seq.repeat a
+            Seq.repeat a
         else
-            Toolbox.Range.make_inc a b |> Toolbox.Range.as_seq
+            Range.make_inc a b |> Range.as_seq
 
     let range_x = get_range (fun (p: point) -> p.x)
     let range_y = get_range (fun (p: point) -> p.y)
@@ -50,7 +50,7 @@ module Segment = struct
     let get_points (s: t): Point.t list =
         let raw_values =
             fork range_x range_y
-                >> uncurry Toolbox.Seq.zip
+                >> uncurry Seq.zip
                 >> List.of_seq in
         raw_values s
             |> List.map (uncurry Point.make)
@@ -105,9 +105,9 @@ let parse_segment (line: string): segment option =
         List.init 5 (Fun.flip Str.matched_group line)
             (* Group 0 matches the entire string, we don't need that. *)
             |> List.tl
-            |> List.filter_map Toolbox.Num.parse_int
-            |> Toolbox.List.map_pairs Point.make
-            |> Toolbox.List.map_pairs Segment.make
+            |> List.filter_map Num.parse_int
+            |> List.map_pairs Point.make
+            |> List.map_pairs Segment.make
             |> fun l -> Some (List.hd l)
 
 
@@ -136,7 +136,7 @@ let () =
         exit 1;
     end;
 
-    Toolbox.File.as_seq Sys.argv.(1)
+    File.as_seq Sys.argv.(1)
         |> Seq.filter_map parse_segment
         |> List.of_seq
         |> create_diagram

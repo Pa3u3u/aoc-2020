@@ -1,6 +1,7 @@
 open Printf
+open Toolbox.Core
+open Toolbox.Core.Pair
 open Toolbox.Operators
-open Toolbox.Pair
 
 
 exception Invalid_input of string
@@ -29,7 +30,7 @@ module RawBoard = struct
 
     let of_seq input =
         let parse_line =
-            String.split_on_char ' ' >> List.filter_map Toolbox.Num.parse_int in
+            String.split_on_char ' ' >> List.filter_map Num.parse_int in
 
         let read_line input = match input () with
             | Seq.Nil -> ([], Seq.Nil)
@@ -125,7 +126,7 @@ end
 
 let read_header input =
     let parse_header =
-        (String.split_on_char ',' >> List.filter_map Toolbox.Num.parse_int) in
+        (String.split_on_char ',' >> List.filter_map Num.parse_int) in
 
     match input () with
         | Seq.Nil -> raise (Invalid_input "No header found")
@@ -173,7 +174,7 @@ let () =
         exit 1;
     end;
 
-    Toolbox.File.as_seq Sys.argv.(1)
+    File.as_seq Sys.argv.(1)
         |> parse_input
         |> second convert_boards
         |> uncurry last_board

@@ -1,7 +1,7 @@
 open Printf
-open Toolbox
+open Toolbox.Core
+open Toolbox.Core.Pair
 open Toolbox.Operators
-open Toolbox.Pair
 
 let process_input =
     Seq.flat_map (String.split_on_char ',' >> List.filter_map Num.parse_int >> List.to_seq)

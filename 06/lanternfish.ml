@@ -1,5 +1,5 @@
 open Printf
-open Toolbox
+open Toolbox.Core
 open Toolbox.Operators
 
 
@@ -65,7 +65,7 @@ let () =
 
     let days = if argc = 1 then 256 else get_days Sys.argv.(2) in
 
-    Toolbox.File.as_seq Sys.argv.(1)
+    File.as_seq Sys.argv.(1)
         |> process_input
         |> Population.from_ages
         |> Fun.peek (Population.print "Initial state")
