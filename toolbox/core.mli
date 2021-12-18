@@ -95,13 +95,6 @@ module List: sig
 end
 
 
-module Operators: sig
-    val (|<): ('b -> 'c) -> ('a -> 'b) -> 'a -> 'c
-    val (>>): ('a -> 'b) -> ('b -> 'c) -> 'a -> 'c
-    val (&--): int -> int -> int list
-end
-
-
 module Range: sig
     type 'a t = 'a * 'a * ('a -> bool)
 

@@ -16,14 +16,6 @@ module Misc = struct
 end
 
 
-module Operators = struct
-    let (|<) g f x = g (f x)
-    let (>>) f g x = g (f x)
-
-    let (&--) a z = List.init (z - a) ((+) a)
-end
-
-
 module Pair = struct
     open Operators
     let make a b = (a, b)
