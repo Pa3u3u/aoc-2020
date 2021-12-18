@@ -63,6 +63,18 @@ module SfNum = struct
     let rec magnitude: t -> int = function
         | N v -> v
         | L (a, b) -> 3 * (magnitude a) + 2 * (magnitude b)
+
+    let maximum_magnitude (l: t list): ((t * t) * int) =
+        let len = List.length l in
+        List.product (0 &-- len) (0 &-- len)
+            |> List.filter (fun (a, b) -> a != b)
+            |> List.to_seq
+            |> Seq.map (fun (ia, ib) ->
+                    let a = List.nth l ia and b = List.nth l ib in
+                    ((a, b), sum [a; b] |> magnitude))
+            |> Seq.fold_left (fun (a, ar) (n, nr) ->
+                    if ar > nr then (a, ar) else (n, nr))
+                    ((N 0, N 0), 0)
 end
 
 type snail_int = SfNum.t
@@ -99,7 +111,7 @@ let () =
     File.as_seq Sys.argv.(1)
         |> Seq.filter_map Parser.parse_line
         |> List.of_seq
-        |> SfNum.sum
-        |> Fun.peek (fun l -> printf "%s\n" (SfNum.to_string l))
-        |> SfNum.magnitude
-        |> printf "%d\n"
+        |> SfNum.maximum_magnitude
+        |> Fun.peek (fun ((a, b), v) ->
+                printf "# %s + %s -> %d\n" (SfNum.to_string a) (SfNum.to_string b) v)
+        |> (fun (_, v) -> printf "%d\n" v)
