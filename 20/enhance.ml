@@ -133,7 +133,7 @@ let () =
 
     let [@warning "-26"] count = if argc = 2
         then Num.parse_int_exn Sys.argv.(2)
-        else 2 in
+        else 50 in
 
     Printexc.record_backtrace true;
 
