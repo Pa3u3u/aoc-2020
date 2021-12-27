@@ -13,6 +13,11 @@ module Position = struct
             |> List.map pow
             |> List.sum
 
+    let dist_man ((a1, a2, a3): t) ((b1, b2, b3): t): int =
+        List.zip_with (-) [a1; a2; a3] [b1; b2; b3]
+            |> List.map Int.abs
+            |> List.sum
+
     let compare ((a1, a2, a3):t ) ((b1, b2, b3): t): int =
         List.zip_with Int.compare [a1; a2; a3] [b1; b2; b3]
             |> List.find_opt ((!=) 0)
@@ -125,10 +130,10 @@ module IntMatrix = struct
         let print_row row =
             Array.to_list row |> List.map (sprintf "%2d")
                 |> String.concat " "
-                |> printf "   [%s]\n" in
-        printf "[\n";
+                |> printf "#    [%s]\n" in
+        printf "# [\n";
         Array.iter print_row m;
-        printf "]\n";
+        printf "# ]\n";
 end
 
 module Beacon = struct
@@ -137,14 +142,14 @@ module Beacon = struct
     let compare = Position.compare
 
     let to_string (a, b, c)
-        = sprintf "[%4d, %4d, %4d]" a b c
+        = sprintf "[%5d, %5d, %5d]" a b c
 end
 
 type beacon = Beacon.t
 
 module Conf = struct
     let dists = 80
-    let candidate = 6
+    let candidate = 8
     let minimum_common = 12
 end
 
@@ -176,12 +181,14 @@ module Scanner = struct
         let rotate_beacon axis r b =
             IntMatrix.(rotate_around (from_pos b) (from_pos axis) r |> to_pos) in
         { s with beacons = Beacons.map (rotate_beacon p r) s.beacons;
+            pos = rotate_beacon p r s.pos;
             dists = DistMap.create 1 }
 
     let translate v (s: t) =
         let translate_beacon v b =
             IntMatrix.((from_pos b) +:: v |> to_pos) in
         { s with beacons = Beacons.map (translate_beacon v) s.beacons;
+            pos = translate_beacon v s.pos;
             dists = DistMap.create 1 }
 
     let compute_distances (s: t): t =
@@ -195,7 +202,6 @@ module Scanner = struct
                 |> List.fold_left (Fun.flip IntSet.add) IntSet.empty
                 |> DistMap.add s.dists p in
         Beacons.iter create_pts s.beacons; s
-
 
     let candidates (s: t) (p: t): (beacon * beacon) Seq.t =
         let select pt =
@@ -216,11 +222,11 @@ module Scanner = struct
 
     let print s =
         let print_beacon b =
-            printf "    %s\n" (Beacon.to_string b);
+            printf "#     %s\n" (Beacon.to_string b);
         in
-        printf "--- scanner %d ---\n[\n" s.n;
+        printf "# --- scanner %d ---\n# [\n" s.n;
         Beacons.iter (print_beacon) s.beacons;
-        printf "]\n"
+        printf "# ]\n"
 end
 
 type scanner = Scanner.t
@@ -252,9 +258,9 @@ module Parser = struct
 end
 
 
-let fold_scanners (sl: scanner list): scanner =
+let fold_scanners (sl: scanner list): (scanner * scanner list) =
     let split: scanner list -> (scanner * scanner list) = function
-        | x::rest -> { x with n = -1 }, rest
+        | x::rest -> x, rest
         | _ -> raise (Failure "Scanner list is empty") in
 
     let try_join_r (s: scanner) x (ps, px) r =
@@ -265,8 +271,9 @@ let fold_scanners (sl: scanner list): scanner =
         if Beacons.cardinal common_beacons >= Conf.minimum_common
         then begin
             printf "#   Match on %s → %s\n" (Beacon.to_string px) (Beacon.to_string ps);
+            Stdlib.(flush stdout);
             { s with beacons = Beacons.union s.beacons x'.beacons }
-            |> Scanner.compute_distances |> Option.some
+            |> Scanner.compute_distances |> fun s' -> Some (s', x')
         end else None in
 
     let try_join s x pts =
@@ -274,22 +281,50 @@ let fold_scanners (sl: scanner list): scanner =
             |> Seq.map (try_join_r s x pts)
             |> Seq.find_opt Option.is_some
             |> Option.join in
+
     let join_scanner (s: scanner) (x: scanner) =
         printf "# Join scanner %d\n" x.n;
+        Stdlib.(flush stdout);
         Scanner.candidates s x
             |> Seq.map (try_join s x)
             |> Seq.find_opt Option.is_some
             |> Option.join in
-    let rec join_scanners s flag stash work = match work, stash with
-        | [], [] -> printf "# Done\n"; s
+
+    let rec join_scanners s flag stash work r = match work, stash with
+        | [], [] -> printf "# Done\n"; (s, r)
         | [], _ when not flag -> raise (Failure "Stalemate detected")
-        | [], stash -> printf "# --- Next cycle\n"; join_scanners s false [] stash
+        | [], stash -> printf "# --- Next cycle\n"; join_scanners s false [] stash r
         | x::xs, stash -> match join_scanner s x with
-            | None -> join_scanners s flag (x::stash) xs
-            | Some s' -> join_scanners s' true stash xs in
+            | None -> join_scanners s flag (x::stash) xs r
+            | Some (s', x') -> join_scanners s' true stash xs (x'::r) in
 
     let (s, l) = split sl in
-    join_scanners s false [] l
+    join_scanners {s with n = -1 } false [] l [s]
+
+
+let largest_distance: scanner list -> scanner * scanner * int =
+    let distances_with (s: scanner) =
+        let unfolder (l: scanner list) = match l with
+            | q::rest -> Some ((s, q, Position.dist_man s.pos q.pos), rest)
+            | [] -> None in
+        Seq.unfold unfolder in
+
+    let distances: scanner list -> (scanner * scanner * int) Seq.t =
+        let unfolder = function
+            | s::rest -> Some (distances_with s rest, rest)
+            | _ -> None in
+        Seq.unfold unfolder >> Seq.concat in
+
+    let fold (ap, aq, ad) ((p, q, d): scanner * scanner * int) =
+        printf "# Distance %d → %d is %d\n" p.n q.n d;
+        if d > ad then (p, q, d) else (ap, aq, ad) in
+
+    distances
+        >> Seq.fold_left fold (Scanner.empty, Scanner.empty, 0)
+
+
+let print_result ((p, q, d): scanner * scanner * int) =
+    printf "# Longest %d → %d\n%d\n" p.n q.n d
 
 
 let () =
@@ -307,5 +342,5 @@ let () =
         |> Parser.parse
         |> List.map Scanner.compute_distances
         |> fold_scanners
-        |> Fun.peek Scanner.print
-        |> fun s -> printf "%d\n" (Beacons.cardinal s.beacons)
+        |> (snd >> largest_distance)
+        |> print_result
