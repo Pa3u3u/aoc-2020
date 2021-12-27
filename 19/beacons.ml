@@ -242,14 +242,14 @@ module Parser = struct
             |> accept (fun l -> List.length l == 3) <?> "three values"
             |> map unwrap
 
-    let header = str "--- scanner " @>> integer |> skip (skip_until any eol)
+    let header = str "--- scanner " @>> integer |> then_skip (skip_until any eol)
 
     let input =
         let make_scanner (n, beacons): scanner = {
             Scanner.empty with n; beacons = beacons |> List.to_seq |> Beacons.of_seq
         } in
         let parse_scanner = header @>>& sep_by eol pos |> map make_scanner in
-        (sep_by eol (parse_scanner |> skip eol)) |> eofv
+        (sep_by eol (parse_scanner |> then_skip eol)) |> eofv
 
     let parse =
         run input () >> function

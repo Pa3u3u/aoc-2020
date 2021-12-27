@@ -102,7 +102,7 @@ module Image = struct
                 |> map (Canvas.from_lists)
 
         let par =
-            combine (parse_algorithm |> skip (many eol)) parse_image
+            combine (parse_algorithm |> then_skip (many eol)) parse_image
 
         let parse: char Seq.t -> algorithm * canvas =
             Seq.resident >> run par () >> function
