@@ -44,7 +44,7 @@ module Make(P: ParseType): sig
     val many_until: 'a p -> 'b p -> 'a list p
     val skip_until_before: 'a p -> 'b p -> unit p
     val skip_until: 'a p -> 'b p -> unit p
-    val skip: 'b p -> 'a p -> 'a p
+    val then_skip: 'b p -> 'a p -> 'a p
     val combine: 'a p -> 'b p -> ('a * 'b) p
     val (@>>&): 'a p -> 'b p -> ('a * 'b) p
 

@@ -97,7 +97,7 @@ module Make(P: ParseType) = struct
         sequence (List.replicate n p)
 
     let ignore (p: 'a p): unit p =
-        map (Fun.const ()) p
+        p @>> return ()
 
     let many (p: 'a p): 'a list p =
         fold (Fun.flip List.cons) [] p |> map List.rev
@@ -131,7 +131,7 @@ module Make(P: ParseType) = struct
     let between (l: 'l p) (r: 'r p) (p: 'a p): 'a p =
         ignore l @>> p @>>= (fun a -> ignore r @>> return a)
 
-    let skip (s: 'b p) (p: 'a p): 'a p =
+    let then_skip (s: 'b p) (p: 'a p): 'a p =
         p @>>= (fun v -> s @>> return v)
 
     let combine (a: 'a p) (b: 'b p): ('a * 'b) p =
