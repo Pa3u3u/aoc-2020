@@ -22,4 +22,5 @@ module Make (MT: MatrixType): sig
     val remap: ('a -> 'a) -> 'a t -> 'a t
     val for_all: ('a -> bool) -> 'a t -> bool
     val valid_point: m -> pos -> bool
+    val get_opt: m -> pos -> v option
 end

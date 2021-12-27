@@ -69,4 +69,9 @@ module Make (MT: MatrixType) = struct
 
     let valid_point (m: m) ((x, y): pos): bool =
         x >= 0 && y >= 0 && y < height m && x < width m
+
+    let get_opt (m: m) ((x, y): pos): v option =
+        if valid_point m (x, y)
+        then Some m.(y).(x)
+        else None
 end
