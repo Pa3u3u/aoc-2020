@@ -1,6 +1,7 @@
 open Printf
 open Toolbox.Core
-open Toolbox.Core.Pair
+open Toolbox.Extensions
+open Toolbox.Pair
 open Toolbox.Operators
 
 let process_input =

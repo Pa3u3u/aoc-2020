@@ -1,6 +1,6 @@
 open Printf
 open Toolbox.Core
-open Toolbox.Core.Pair
+open Toolbox.Pair
 open Toolbox.Operators
 
 

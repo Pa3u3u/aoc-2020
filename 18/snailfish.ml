@@ -1,5 +1,6 @@
 open Printf
 open Toolbox.Core
+open Toolbox.Extensions
 open Toolbox.Operators
 open Toolbox.Parser
 
@@ -82,7 +83,7 @@ type snail_int = SfNum.t
 module Parser = struct
     include CharParser
 
-    let parse_line: string -> snail_int option =
+    let parse_line: string -> (snail_int, string) result =
         let unwrap_n (n: int): snail_int =
             N n in
         let unwrap_l: snail_int list -> snail_int = function
@@ -96,7 +97,7 @@ module Parser = struct
                 (sep_by (symbol ',') snp
                 |> accept (fun l -> List.length l == 2)
                 |> map unwrap_l))) us in
-        String.to_seq >> run snp ()
+        String.to_seq >> run snp () >> Result.map_error fst
 end
 
 let () =
@@ -109,7 +110,7 @@ let () =
 
     Printexc.record_backtrace true;
     File.as_seq Sys.argv.(1)
-        |> Seq.filter_map Parser.parse_line
+        |> Seq.filter_map (Parser.parse_line >> Result.to_option)
         |> List.of_seq
         |> SfNum.maximum_magnitude
         |> Fun.peek (fun ((a, b), v) ->

@@ -1,7 +1,8 @@
 open Printf
 open Toolbox.Core
-open Toolbox.Core.Pair
+open Toolbox.Extensions
 open Toolbox.Operators
+open Toolbox.Pair
 
 exception Invalid_input of string
 
