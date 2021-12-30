@@ -166,7 +166,7 @@ module CharParser = struct
     let digit: char p = any_of "0123456789"
 
     let symbol (t: t): t p =
-        read |> accept (fun c -> c = t)
+        read |> accept (fun c -> c = t) <?> (Printf.sprintf "symbol %c" t)
 
     let str: string -> unit p =
         String.to_chars >> List.map symbol >> sequence >> ignore
@@ -176,10 +176,12 @@ module CharParser = struct
             >> String.of_seq
             >> Num.parse_int_exn >> ( * ) n) in
 
-        (symbol '-' @>> many1 digit |> convert (-1))
-        <|>
-        (optional (symbol '+') @>> many1 digit |> convert 1)
+        (
+            (symbol '-' @>> many1 digit |> convert (-1))
+            <|>
+            (optional (symbol '+') @>> many1 digit |> convert 1)
+        ) <?> "integer"
 
     let eol: t p =
-        symbol '\n'
+        symbol '\n' <?> "eol"
 end
