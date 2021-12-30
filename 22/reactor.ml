@@ -213,6 +213,5 @@ let () =
         |> Reactor.Parser.parse
         |> Fun.peek (List.iter (Reactor.Command.to_string >> printf "# %s\n"))
         |> Reactor.interpret
-        |> Reactor.crop 3
         |> Reactor.size
         |> printf "%d\n"
