@@ -5,6 +5,9 @@ end
 
 module List: sig
     include module type of List
+    val all: bool list -> bool
+    val any: bool list -> bool
+    val index: ('a -> bool) -> 'a list -> int option
     val replicate: int -> 'a -> 'a list
     val reject: ('a -> bool) -> 'a list -> 'a list
     val equal: ('a -> 'a -> bool) -> 'a list -> 'a list -> bool
@@ -13,6 +16,7 @@ module List: sig
     val take: int -> 'a list -> 'a list
     val drop: int -> 'a list -> 'a list
     val product: 'a list -> 'b list -> ('a * 'b) list
+    val nproduct: 'a list list -> 'a list list
     val populate: ('a -> bool) -> ('a -> 'a) -> 'a -> 'a list
     val zip_with: ('a -> 'b -> 'c) -> 'a list -> 'b list -> 'c list
     val zip: 'a list -> 'b list -> ('a * 'b) list

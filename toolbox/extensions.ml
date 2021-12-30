@@ -11,6 +11,16 @@ module List = struct
     open Operators
     include List
 
+    let all = List.for_all Fun.id
+    let any = List.exists Fun.id
+
+    let index f l =
+        let rec index' n = function
+            | a::_ when f a -> Some n
+            | _::r -> index' (n + 1) r
+            | [] -> None in
+        index' 0 l
+
     let replicate (n: int) (v: 'a): 'a list =
         List.init n (Fun.const v)
 
@@ -48,6 +58,16 @@ module List = struct
         | [] -> []
         | a::rest -> List.append (prod a lb) (product rest lb)
 
+
+    let rec nproduct: 'a list list -> 'a list list =
+        let rec merge la lr copy = match la, lr with
+            | [], _ -> []
+            | _::xa, [] -> merge xa copy copy
+            | a::xa, l::xl -> (a::l) :: merge (a::xa) xl copy in
+        function
+        | [] -> []
+        | l::[] -> List.map (fun v -> [v]) l
+        | a::l -> let nl = nproduct l in merge a nl nl
 
     let rec populate p f v =
         if p v then v :: populate p f (f v)
