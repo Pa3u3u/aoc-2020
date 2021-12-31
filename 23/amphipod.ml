@@ -142,7 +142,7 @@ module Map = struct
         printf "#%s#\n" hall;
         printf "###%c#%c#%c#%c###\n" (get_room 0 0) (get_room 1 0) (get_room 2 0) (get_room 3 0);
         (1 &-- rs) |> List.iter (fun k ->
-            printf "  #%c#%c#%c#%c#  \n" (get_room k 1) (get_room k 1) (get_room k 1) (get_room k 1)
+            printf "  #%c#%c#%c#%c#  \n" (get_room 0 k) (get_room 1 k) (get_room 2 k) (get_room 3 k)
         );
         printf "  #########\n"
 
@@ -244,7 +244,7 @@ module Map = struct
             let errors =
                 let ecost = function
                     | (Tile.Hall _, _) -> 1
-                    | (Tile.Room (k, _), c) -> if k = critter_index c then 0 else 5 in
+                    | (Tile.Room (k, _), c) -> if k = critter_index c then 0 else 20 in
                 TileMap.bindings
                 >> List.map ecost
                 >> List.sum in
@@ -345,7 +345,7 @@ let () =
     File.as_char_seq Sys.argv.(1)
         |> Map.Parser.parse
         |> Map.create
-        |> Fun.peek (Map.print)
+        |> Fun.peek (fun m -> Map.print m; Stdlib.(flush stdout))
         |> Map.Solver.run
         |> fun ((m, (g, rs)), p, c) -> printf "# -- Path to solution:\n";
             List.iter (fun x -> Map.print (x, (g, rs))) p;
