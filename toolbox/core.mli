@@ -20,6 +20,7 @@ end
 module Num: sig
     val parse_int: string -> int option
     val parse_int_exn: string -> int
+    val ipow: int -> int -> int
 end
 
 module Range: sig

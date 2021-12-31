@@ -45,6 +45,10 @@ module Num = struct
 
     let parse_int_exn =
         Misc.guard (fun s -> raise (Parse_error (Printf.sprintf "%s: Not a valid number" s))) parse_int
+
+    let rec ipow k = function
+        | 0 -> 1
+        | n -> k * ipow k (n - 1)
 end
 
 
