@@ -1,0 +1,3 @@
+(executable
+ (name amphipod)
+ (libraries toolbox))
