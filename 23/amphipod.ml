@@ -67,17 +67,27 @@ module Map = struct
             | Hall of int
             | Room of int * int
 
-        let same a b = match a, b with
+        let same (a: t) (b: t) = match a, b with
             | Hall _, Hall _ -> true
             | Room _, Room _ -> true
             | _ -> false
 
-        let compare a b = match a, b with
+        let is_room = function
+            | Room _ -> true
+            | _ -> false
+
+        let is_hall = function
+            | Hall _ -> true
+            | _ -> false
+
+        let compare (a: t) (b: t) = match a, b with
             | Hall x, Hall y -> Int.compare x y
             | Room (p, x), Room (q, y) -> List.zip_with Int.compare [p; x] [q; y]
                 |> List.find_opt ((!=) 0) |> Option.value ~default:0
             | Hall _, Room _ -> -1
             | Room _, Hall _ -> 1
+
+        let equal (a: t) (b: t) = compare a b = 0
 
         let to_string (t: t) = match t with
             | Hall n -> sprintf "‹Hall %d›" n
@@ -154,7 +164,7 @@ module Map = struct
 
         module Cost = struct
             type t = { cost: int; h: int }
-            let compare (a: t) (b: t) = pwcmp [a.h; a.cost] [b.h; b.cost]
+            let compare (a: t) (b: t) = pwcmp [a.cost] [b.cost]
             let init = { cost = 0; h = 0 }
             let min (a: t) (b: t) = if compare a b < 0 then a else b
             let to_string (a: t) = sprintf "[%d, %d]" a.cost a.h
@@ -209,10 +219,16 @@ module Map = struct
                 | Tile.Hall _, Tile.Hall _ -> false
                 | _ -> true in
 
+            let prefer_room_to_room s l =
+                let is_rtr (t, _) = Tile.is_room s && Tile.is_room t in
+                let has_rtr = List.find_opt is_rtr l |> Option.is_some in
+                if has_rtr then List.filter is_rtr l |> List.take 1 else l in
+
             reachable_cell TileMap.empty [(tile, 0)]
                 |> List.filter (fun (t, _) -> valid_move tile t)
                 |> List.filter (fun (t, _) -> valid_room_move t)
                 |> List.filter (fun (t, _) -> valid_hall_move t)
+                |> prefer_room_to_room tile
 
         let valid_moves ((m, (g, rs)): t): (Tile.t * Tile.t * int) list =
             let finished_tile tile _ = match tile with
@@ -240,15 +256,32 @@ module Map = struct
                     |> List.map apply_move
                     |> List.map (fun (m', c') -> (m', (fst m')::path, c'))
 
+        let errors =
+            let ecost = function
+                | (Tile.Hall _, _) -> 1
+                | (Tile.Room (k, _), c) -> if k = critter_index c then 0 else 20 in
+            TileMap.bindings
+            >> List.map ecost
+            >> List.sum
+
         let recalculate_h ((m, g), vp, vc): (t * m list * cost) =
-            let errors =
-                let ecost = function
-                    | (Tile.Hall _, _) -> 1
-                    | (Tile.Room (k, _), c) -> if k = critter_index c then 0 else 20 in
-                TileMap.bindings
-                >> List.map ecost
-                >> List.sum in
             ((m, g), vp, { vc with h = errors m })
+
+        module Seen = struct
+            module MappingSet = Hashtbl.MakeSeeded(struct
+                type t = m
+                let hash = Hashtbl.seeded_hash
+                let equal = TileMap.equal Char.equal
+            end)
+
+            type t = unit MappingSet.t
+
+            let empty = MappingSet.create ~random:true (1 lsl 16)
+            let add (m: m) (s: t) =
+                MappingSet.add s m (); s
+            let mem (m: m) (s: t) =
+                MappingSet.mem s m
+        end
 
         let rec insert_to (sorted: (t * m list * cost) list): (t * m list * cost) list -> (t * m list * cost) list =
             let rec insert (v, vp, vc) = function
@@ -260,19 +293,28 @@ module Map = struct
             | x::xs -> insert_to (insert (recalculate_h x) sorted) xs
             | [] -> sorted
 
-        let [@warning "-27"] peek cc ((x, c): t * cost) best prospect =
-            let print_best =  function
-                | None -> printf "#   best: none\n"
-                | Some (_, _, c) -> printf "#   best: %s\n" (Cost.to_string c) in
-            let print_prospect = function
-                | None -> ()
-                | Some p -> printf "#   pros: %d\n" (p + c.cost) in
-            printf "# New solution:\n";
-            printf "#   iter: %d\n" cc;
-            printf "#   cost: %s\n" (Cost.to_string c);
-            print_best best;
-            print_prospect prospect;
-            Stdlib.(flush stdout)
+        module Peek = struct
+            let str (m, (g, _)) =
+                TileGraph.NodeSet.to_seq (fst g)
+                    |> Seq.map (Fun.flip TileMap.find_opt m >> Option.value ~default:'.')
+                    |> String.of_seq
+
+            let peek cc ((x, c): t * cost) best prospect =
+                let print_best =  function
+                    | None -> printf "#   best: none\n"
+                    | Some (_, _, c) -> printf "#   best: %s\n" (Cost.to_string c) in
+                let print_prospect = function
+                    | None -> ()
+                    | Some p -> printf "#   pros: %d\n" (p + c.cost) in
+                printf "# New solution:\n";
+                print x;
+                printf "#   iter: %d\n" cc;
+                printf "#   cost: %s\n" (Cost.to_string c);
+                printf "#   str:  %s %d\n" (str x) (c.cost);
+                print_best best;
+                print_prospect prospect;
+                Stdlib.(flush stdout)
+        end
 
         let [@warning "-26"] prospect m =
             let extract (t, c) = match t with
@@ -288,7 +330,8 @@ module Map = struct
                 |> List.map cost_bound
                 |> List.sum
 
-        let [@warning "-27"] rec run' cc (best: (t * m list * cost) option): (t * m list * cost) list -> (t * m list * cost) option =
+        let [@warning "-27"] rec run' cc (best: (t * m list * cost) option) seen:
+                    (t * m list * cost) list -> (t * m list * cost) option =
             let choose_best xopt (y, yb, cy) = match xopt with
                 | None -> Some (y, yb, cy)
                 | Some (x, xb, cx) -> Some (if (cx < cy) then (x, xb, cx) else (y, yb, cy)) in
@@ -299,17 +342,24 @@ module Map = struct
                     c > c' || p + c.cost > c'.cost in
 
             function
-            | (x, xp, c)::rest when solved x -> peek cc (x, c) best None;
-                    run' (cc + 1) (choose_best best (x, xp, c)) rest
+            | (x, xp, c)::rest when solved x ->
+                    Peek.peek cc (x, c) best None;
+                    run' (cc + 1) (choose_best best (x, xp, c)) seen rest
+            | (x, xp, c)::rest when Seen.mem (fst x) seen ->
+                    run' cc best seen rest
             | (x, xp, c)::xs ->
+                    let seen' = Seen.add (fst x) seen in
                     if skip (x, c) best
-                    then run' (cc + 1) best xs
-                    else turn (x, xp, c) |> insert_to xs |> run' (cc + 1) best
+                    then run' (cc + 1) best seen' xs
+                    else begin
+                        (*Peek.peek cc (x, c) best None;*)
+                        turn (x, xp, c) |> insert_to xs |> run' (cc + 1) best seen'
+                    end
             | [] -> best
 
         let run (s: t) =
             let (m, _) = s in
-            run' 0 None [(s, [m], Cost.init)]
+            run' 0 None Seen.empty [(s, [m], Cost.init)]
                 |> Option.get
                 |> fun (a, b, c) -> (a, List.rev b, c)
     end
