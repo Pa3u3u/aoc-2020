@@ -87,6 +87,8 @@ module List = struct
 end
 
 module Seq = struct
+    open Operators
+
     include Seq
 
     let take (n: int) (a: 'a Seq.t): 'a Seq.t =
@@ -121,6 +123,9 @@ module Seq = struct
         | (Cons (a, _)) when p a -> Some a
         | (Cons (_, t)) -> find_opt p t
         | Nil -> None
+
+    let filter_result (f: 'a -> ('b, 'e) Result.t): 'a Seq.t -> 'b Seq.t =
+        Seq.map f >> Seq.filter_map Result.to_option
 
     let resident (s: 'a t): 'a t =
         List.of_seq s |> List.to_seq

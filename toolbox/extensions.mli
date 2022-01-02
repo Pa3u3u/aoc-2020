@@ -34,6 +34,7 @@ module Seq: sig
     val zip_with: ('a -> 'b -> 'c) -> 'a Seq.t -> 'b Seq.t -> 'c Seq.t
     val zip: 'a Seq.t -> 'b Seq.t -> ('a * 'b) Seq.t
     val find_opt: ('a -> bool) -> 'a Seq.t -> 'a option
+    val filter_result: ('a -> ('b, 'e) Result.t) -> 'a Seq.t -> 'b Seq.t
     val resident: 'a t -> 'a t
 end
 
