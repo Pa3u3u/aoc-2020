@@ -1,0 +1,3 @@
+(executable
+ (name monad)
+ (libraries threads toolbox))
