@@ -100,6 +100,18 @@ module Seq = struct
                 | Cons (v, rest) -> Some (v, (n - 1, rest)) in
         Seq.unfold unfolder (n, a)
 
+    let copy_rev (n: int) (a: 'a Seq.t): ('a list) * ('a Seq.t) =
+        let rec copy' n l s =
+            if n <= 0
+            then (l, s)
+            else match s () with
+                | Cons (x, s') -> copy' (n - 1) (x::l) s'
+                | Nil -> (l, s) in
+        copy' n [] a
+
+    let copy (n: int) (a: 'a Seq.t): ('a list) * ('a Seq.t) =
+        copy_rev n a |> Pair.first List.rev
+
     let concat (a: 'a Seq.t Seq.t): 'a Seq.t =
         Seq.flat_map Fun.id a
 

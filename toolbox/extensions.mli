@@ -28,6 +28,8 @@ end
 module Seq: sig
     include module type of Seq
     val take: int -> 'a Seq.t -> 'a Seq.t
+    val copy: int -> 'a Seq.t -> ('a list) * ('a Seq.t)
+    val copy_rev: int -> 'a Seq.t -> ('a list) * ('a Seq.t)
     val concat: 'a Seq.t Seq.t -> 'a Seq.t
     val repeat: 'a -> 'a Seq.t
     val populate: ('a -> bool) -> ('a -> 'a) -> 'a -> 'a Seq.t
