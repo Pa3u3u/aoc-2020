@@ -1,3 +1,5 @@
+exception Parser_error of string * int
+
 module type ParseType = sig
     type token
     type user
@@ -142,6 +144,11 @@ module Make(P: ParseType) = struct
     let run (p: 'r p) (u: u) (s: s): ('r, string * h) result =
         p (u, s, 0) |> Result.map (fun (r, _) -> r)
             |> Result.map_error (fun (s, hs) -> (s, hs))
+
+    let run_exn p u s: 'r =
+        run p u s |> function
+            | Ok v -> v
+            | Error (s, (_, _, i)) -> raise (Parser_error (s, i))
 end
 
 module CharParser = struct

@@ -1,3 +1,5 @@
+exception Parser_error of string * int
+
 module type ParseType = sig
     type token
     type user
@@ -51,6 +53,7 @@ module Make(P: ParseType): sig
     val sep_by: 's p -> 'r p -> 'r list p
     val between: 'l p -> 'r p -> 'a p -> 'a p
     val run: 'r p -> u -> s -> ('r, string * h) result
+    val run_exn: 'r p -> u -> s -> 'r
 end
 
 module CharParser: sig
