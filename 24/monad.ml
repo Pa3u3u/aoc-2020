@@ -602,7 +602,7 @@ module MONAD = struct
                 let c = List.assoc_opt n cstr in
                 if n = 14
                 then cb (rebuild m)
-                else (1 &-- 10) |> List.rev
+                else (1 &-- 10)
                     |> List.filter (fun k -> filter m c k)
                     |> List.fold_left (fun s k -> s || choose (n + 1) (IntMap.add n k m) cstr) false in
             choose 0 IntMap.empty cstr
