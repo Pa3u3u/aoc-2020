@@ -735,7 +735,7 @@ module Main = struct
             | "exe" -> check_args 4; run_exe (get_options Sys.argv.(2)) Sys.argv.(3) 4
             | "sym" -> check_args 4; run_symb (get_options Sys.argv.(2)) Sys.argv.(3)
             | "monad" -> check_args 4; run_monad (get_options Sys.argv.(2)) Sys.argv.(3)
-            | _ -> check_args 2; run_exe ALU.Options.default Sys.argv.(1) 2
+            | _ -> check_args 2; run_monad { ALU.Options.default with constraints = true } Sys.argv.(1)
 end
 
 let () =
