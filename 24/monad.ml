@@ -581,6 +581,10 @@ module MONAD = struct
 
     let analyze mp =
         MonadALU.transform mp
+            |> Fun.peek (fun l ->
+                    printf "# -- Transformed program\n";
+                    List.iter (MonadALU.Expr.to_string >> printf "# %s\n") l;
+                    printf "\n")
             |> build_constraints
             |> List.map (function
                 | Constraint.Eq (p, q, n) -> (p, Constraint.Eq (p, q, n))
@@ -621,6 +625,10 @@ module MONAD = struct
 
         if options.constraints then
             analyze mp
+                |> Fun.peek (fun l ->
+                        printf "# -- Constraints --\n";
+                        List.iter (snd >> Constraint.to_string >> printf "# %s\n") l;
+                        printf "\n")
                 |> ConstrainedSequence.generate run_simple
                 |> ignore
         else
